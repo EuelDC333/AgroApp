@@ -1,0 +1,2744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGROCAMPO ERP & BI - Gestión de Cebo y Contabilidad Ganadera</title>
+    <!-- Tailwind CSS CDN (para despliegue en archivo único; en producción compilar con Vite/CLI) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- QR Code Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        agro: {
+                            dark: '#14532D',
+                            mid: '#1E7E34',
+                            accent: '#D97706',
+                            bg: '#F1F5F9',
+                            ink: '#0F172A'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #F1F5F9; color: #0F172A; }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .badge-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+    </style>
+</head>
+<body class="min-h-[100dvh] bg-slate-100 text-slate-900">
+
+    <div class="min-h-[100dvh] flex flex-col lg:flex-row max-w-[1480px] mx-auto bg-agro-bg shadow-xl">
+
+        <!-- DESKTOP SIDEBAR -->
+        <aside class="hidden lg:flex lg:flex-col lg:w-64 bg-slate-900 text-slate-100 p-5 justify-between shrink-0">
+            <div class="space-y-5">
+                <div class="flex items-center gap-2.5 px-1">
+                    <div class="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow">
+                        <i class="fas fa-weight"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-black tracking-wider leading-none">AGROCAMPO</h1>
+                        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Cebo ERP & BI</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3 space-y-1">
+                    <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Unidad Productiva</p>
+                    <p id="sidebarFarmName" class="text-xs font-bold text-white truncate">Hacienda El Roble (Cebo)</p>
+                    <p id="sidebarOwnerName" class="text-[11px] text-slate-300 truncate">Héctor Molina</p>
+                    <div class="flex items-center gap-1.5 pt-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 badge-pulse"></span>
+                        <span id="sidebarHeadCount" class="text-[10px] font-semibold text-emerald-300 tabular-nums">0 cabezas activas</span>
+                    </div>
+                </div>
+
+                <nav class="space-y-1" aria-label="Navegación principal">
+                    <button onclick="switchTab('home')" id="side-home" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-bold bg-emerald-700 text-white transition">
+                        <i class="fas fa-tachometer-alt w-4 text-center"></i> Resumen Operativo
+                    </button>
+                    <button onclick="switchTab('inventario')" id="side-inventario" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fas fa-clipboard-list w-4 text-center"></i> Inventario & Lotes
+                    </button>
+                    <button onclick="switchTab('contabilidad')" id="side-contabilidad" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fas fa-calculator w-4 text-center"></i> Contabilidad & Caja
+                    </button>
+                    <button onclick="switchTab('analitica')" id="side-analitica" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fas fa-chart-bar w-4 text-center"></i> Analítica BI & Estrés
+                    </button>
+                    <button onclick="switchTab('corrales')" id="side-corrales" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fas fa-border-all w-4 text-center"></i> Campos y Corrales
+                    </button>
+                    <button onclick="switchTab('config')" id="side-config" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fas fa-sliders-h w-4 text-center"></i> Parámetros y Datos
+                    </button>
+                </nav>
+            </div>
+
+            <div class="space-y-2 border-t border-slate-800 pt-4">
+                <button onclick="handleActionButton('addBatch')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition">
+                    <i class="fas fa-layer-group"></i> Cargar Lote / Compra
+                </button>
+                <button onclick="handleActionButton('addExpense')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition">
+                    <i class="fas fa-file-invoice-dollar"></i> Registrar Factura/Gasto
+                </button>
+                <button onclick="handleActionButton('liquidate')" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition">
+                    <i class="fas fa-truck"></i> Liquidar Matadero
+                </button>
+            </div>
+        </aside>
+
+        <!-- RIGHT WORKSPACE -->
+        <div class="flex-1 flex flex-col min-w-0 h-[100dvh]">
+
+            <!-- TOP HEADER BAR -->
+            <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center justify-between gap-3 shrink-0 z-20">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="lg:hidden w-8 h-8 rounded-xl bg-amber-600 text-white flex items-center justify-center text-sm shrink-0">
+                        <i class="fas fa-weight"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <h2 id="farmNameHeader" class="text-sm lg:text-base font-black text-slate-800 truncate">Hacienda El Roble (Cebo)</h2>
+                            <span id="kardexHeaderBadge" class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-extrabold">
+                                <i class="fas fa-check-circle text-[9px]"></i> Kardex Cuadrado
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 font-medium flex items-center gap-2">
+                            <span id="currentDateDisplay">--</span>
+                            <span>•</span>
+                            <span id="currentTime" class="tabular-nums">--:--</span>
+                            <span class="hidden sm:inline">•</span>
+                            <span id="headerRateDisplay" class="hidden sm:inline tabular-nums text-indigo-600 font-semibold">1 USD = 50.00 Bs</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <div id="syncBadge" class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                        <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-500 badge-pulse"></span>
+                        <span id="syncText">Online</span>
+                    </div>
+
+                    <select id="roleSelector" aria-label="Selector de rol" onchange="changeRole(this.value)" class="text-[11px] font-bold bg-slate-50 text-slate-700 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-agro-mid">
+                        <option value="Admin">Admin 🔑</option>
+                        <option value="Contadora">Contadora 📊</option>
+                        <option value="Capataz">Capataz 🤠</option>
+                        <option value="Vet">Vet 🩺</option>
+                    </select>
+
+                    <button onclick="openModal('scanQR')" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 transition" title="Escanear Arete">
+                        <i class="fas fa-qrcode text-amber-400"></i>
+                        <span class="hidden sm:inline">QR</span>
+                    </button>
+
+                    <button onclick="switchTab('config')" class="lg:hidden bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-xl transition" title="Parámetros y Datos">
+                        <i class="fas fa-sliders-h"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- MAIN SCROLLABLE AREA -->
+            <main class="flex-1 overflow-y-auto p-4 lg:p-6 pb-24 lg:pb-8 space-y-5" id="mainContent">
+
+                <!-- TAB 1: RESUMEN OPERATIVO -->
+                <section id="tab-home" class="space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                            <h3 class="text-xl lg:text-2xl font-black text-slate-800">Hola, <span id="userNameDisplay">Héctor</span></h3>
+                            <p class="text-xs text-slate-500">Operación en tiempo real: control de engorde, flujo de caja real y auditoría contable.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span id="roleBadge" class="text-[11px] bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded-lg">Rol: Admin</span>
+                            <span id="totalHatoBadge" class="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-lg tabular-nums">0 cabezas</span>
+                            <span id="totalCorralesBadge" class="text-[11px] bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-lg tabular-nums">0 campos</span>
+                        </div>
+                    </div>
+
+                    <!-- TOP KPI STRIP -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between text-xs text-slate-500 font-semibold">
+                                <span>GDP Promedio Hato</span>
+                                <span>⚡</span>
+                            </div>
+                            <p class="text-2xl font-black text-emerald-700 mt-1 tabular-nums"><span id="homeAvgGdp">0.00</span> <span class="text-xs font-bold text-slate-500">kg/d</span></p>
+                            <div class="mt-2 flex items-center justify-between">
+                                <span id="gdpGoalBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums">Meta: 0%</span>
+                                <span id="homeTargetGdpText" class="text-[10px] text-slate-400 font-semibold tabular-nums">Obj: 1.15 kg/d</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between text-xs text-slate-500 font-semibold">
+                                <span>Listos p/ Matadero</span>
+                                <span>🚛</span>
+                            </div>
+                            <p class="text-2xl font-black text-amber-600 mt-1 tabular-nums"><span id="homeReadyCount">0</span> <span class="text-xs font-bold text-slate-500">cab</span></p>
+                            <p class="text-[11px] text-slate-500 mt-2 tabular-nums"><span id="homeReadyKg">0 kg</span> en pie (≥<span id="homeSlaughterGoal">500</span> kg)</p>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between text-xs text-slate-500 font-semibold">
+                                <span>Activos en Pie</span>
+                                <span>🐂</span>
+                            </div>
+                            <p id="homeGrossLiveValue" class="text-2xl font-black text-slate-900 mt-1 tabular-nums">$0</p>
+                            <p class="text-[11px] text-slate-500 mt-2 tabular-nums"><span id="homeTotalBiomass">0 kg</span> · Prom <span id="homeAvgWeight">0</span> kg/cab</p>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between text-xs text-slate-500 font-semibold">
+                                <span>Margen Neto Real</span>
+                                <span>📊</span>
+                            </div>
+                            <p id="homeNetProfit" class="text-2xl font-black text-indigo-700 mt-1 tabular-nums">$0</p>
+                            <p class="text-[11px] text-slate-500 mt-2 tabular-nums">Gastos: <span id="homeRealExpenses">$0</span> · ROI <span id="homeRoiPct" class="font-bold text-indigo-600">0%</span></p>
+                        </div>
+                    </div>
+
+                    <!-- QUICK ACTIONS -->
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                        <button onclick="handleActionButton('addAnimal')" class="bg-white hover:border-emerald-500 rounded-2xl p-3.5 border border-slate-200/80 shadow-sm hover:shadow transition flex flex-col items-center text-center gap-1.5">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fas fa-plus-circle"></i></div>
+                            <span class="text-[11px] font-extrabold text-slate-800">Alta Individual</span>
+                        </button>
+                        <button onclick="handleActionButton('addBatch')" class="bg-white hover:border-blue-500 rounded-2xl p-3.5 border border-slate-200/80 shadow-sm hover:shadow transition flex flex-col items-center text-center gap-1.5">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center"><i class="fas fa-layer-group"></i></div>
+                            <span class="text-[11px] font-extrabold text-slate-800">Carga Masiva Lote</span>
+                        </button>
+                        <button onclick="handleActionButton('addWeighing')" class="bg-white hover:border-amber-500 rounded-2xl p-3.5 border border-slate-200/80 shadow-sm hover:shadow transition flex flex-col items-center text-center gap-1.5">
+                            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center"><i class="fas fa-balance-scale"></i></div>
+                            <span class="text-[11px] font-extrabold text-slate-800">Pesaje Báscula</span>
+                        </button>
+                        <button onclick="handleActionButton('addExpense')" class="bg-white hover:border-indigo-500 rounded-2xl p-3.5 border border-slate-200/80 shadow-sm hover:shadow transition flex flex-col items-center text-center gap-1.5">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center"><i class="fas fa-file-invoice-dollar"></i></div>
+                            <span class="text-[11px] font-extrabold text-slate-800">Cargar Factura</span>
+                        </button>
+                        <button onclick="handleActionButton('liquidate')" class="bg-white hover:border-slate-800 rounded-2xl p-3.5 border border-slate-200/80 shadow-sm hover:shadow transition flex flex-col items-center text-center gap-1.5 col-span-2 sm:col-span-1">
+                            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center"><i class="fas fa-truck"></i></div>
+                            <span class="text-[11px] font-extrabold text-slate-800">Venta Matadero</span>
+                        </button>
+                    </div>
+
+                    <!-- LOWER HOME GRID -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div class="lg:col-span-2 bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-sm font-extrabold text-slate-800">Ganancia de Peso Semanal del Lote (kg)</h4>
+                                    <p class="text-[11px] text-slate-500">Evolución de kilos ganados frente a la meta operativa del hato</p>
+                                </div>
+                                <button onclick="switchTab('analitica')" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">Estrés & BI →</button>
+                            </div>
+                            <div class="h-56 w-full"><canvas id="homeGainChart"></canvas></div>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+                            <h4 class="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-bell text-amber-500"></i> Estado Operativo y Caja
+                            </h4>
+                            <div id="readySlaughterAlert"></div>
+                            <div id="sickAlertContainer"></div>
+                            <div class="bg-indigo-50 border-l-4 border-indigo-500 p-3 rounded-r-xl text-xs space-y-1">
+                                <div class="flex justify-between">
+                                    <span class="font-bold text-indigo-900">Por Cobrar (Matadero):</span>
+                                    <span id="homeCxC" class="font-black text-emerald-700 tabular-nums">$0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-bold text-indigo-900">Por Pagar (Proveedores):</span>
+                                    <span id="homeCxP" class="font-black text-red-600 tabular-nums">$0</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs flex justify-between items-center">
+                                <span class="text-slate-600 font-semibold">Consumo Alimento / Día:</span>
+                                <span id="homeDailyFeedTons" class="font-black text-slate-900 tabular-nums">0 kg</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: INVENTARIO A ALTA ESCALA (CON ELIMINACIÓN Y CARGA MASIVA) -->
+                <section id="tab-inventario" class="space-y-4 hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-clipboard-list text-emerald-700"></i> Inventario de Ganado (<span id="invTotalCount" class="tabular-nums">0</span>)
+                            </h3>
+                            <p class="text-xs text-slate-500">Soporte para altas masivas, importación CSV/Excel, pesaje individual y bajas/eliminación controlada.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="handleActionButton('addAnimal')" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                                <i class="fas fa-plus"></i> Individual
+                            </button>
+                            <button onclick="handleActionButton('addBatch')" class="bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                                <i class="fas fa-layer-group"></i> Lote Masivo
+                            </button>
+                            <button onclick="openModal('importCSV')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                                <i class="fas fa-file-upload"></i> Importar CSV
+                            </button>
+                            <button onclick="downloadCSV('ganado')" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                                <i class="fas fa-download"></i> Exportar CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- FILTER BAR -->
+                    <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap gap-2 items-center">
+                        <div class="relative flex-1 min-w-[180px]">
+                            <i class="fas fa-search text-slate-400 text-xs absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="invSearchInput" oninput="onInventoryFilterChange()" placeholder="Buscar por arete, raza, proveedor o estado..." class="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-agro-mid">
+                        </div>
+                        <select id="invCorralFilter" onchange="onInventoryFilterChange()" class="text-xs font-bold p-2 rounded-xl border border-slate-200 bg-white">
+                            <option value="Todos">Todos los Campos</option>
+                        </select>
+                        <select id="invStatusFilter" onchange="onInventoryFilterChange()" class="text-xs font-bold p-2 rounded-xl border border-slate-200 bg-white">
+                            <option value="Todos">Todos los Estatus</option>
+                            <option value="Listos">Listos Matadero 🚛</option>
+                            <option value="Clinicos">Clínicos ⚠️</option>
+                            <option value="Novillo">Novillos</option>
+                            <option value="Maute">Mautes</option>
+                            <option value="Torete">Toretes</option>
+                        </select>
+                        <span id="invShowingCounter" class="text-[11px] font-bold text-slate-500 px-2 tabular-nums">0 resultados</span>
+                    </div>
+
+                    <!-- INVENTORY TABLE -->
+                    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px]">
+                                    <tr>
+                                        <th class="py-3 px-4">Arete / Cat.</th>
+                                        <th class="py-3 px-3">Raza</th>
+                                        <th class="py-3 px-3">Campo</th>
+                                        <th class="py-3 px-3 text-right">Ing / Actual</th>
+                                        <th class="py-3 px-3 text-right">GDP</th>
+                                        <th class="py-3 px-3 text-right">Compra</th>
+                                        <th class="py-3 px-3">Estado</th>
+                                        <th class="py-3 px-4 text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventoryTableBody" class="divide-y divide-slate-100 tabular-nums"></tbody>
+                            </table>
+                        </div>
+                        <div id="inventoryPaginationSlot" class="p-3 bg-slate-50 border-t border-slate-100 text-center"></div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: CONTABILIDAD, GASTOS REALES, LIQUIDACIONES Y KARDEX -->
+                <section id="tab-contabilidad" class="space-y-5 hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-calculator text-indigo-600"></i> Módulo Contable, Flujo de Caja y Kardex
+                            </h3>
+                            <p class="text-xs text-slate-500">Facturas reales por centro de costo, liquidaciones de matadero, cuentas por cobrar/pagar y conciliación auditable.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="handleActionButton('addExpense')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                                <i class="fas fa-plus"></i> Factura / Gasto
+                            </button>
+                            <button onclick="handleActionButton('liquidate')" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                                <i class="fas fa-truck"></i> Liquidar Venta
+                            </button>
+                            <button onclick="downloadCSV('gastos')" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                                <i class="fas fa-file-excel text-emerald-700"></i> CSV Gastos
+                            </button>
+                            <button onclick="downloadCSV('liquidaciones')" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                                <i class="fas fa-file-excel text-amber-700"></i> CSV Ventas
+                            </button>
+                            <button onclick="downloadCSV('kardex')" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                                <i class="fas fa-file-excel text-indigo-700"></i> CSV Kardex
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- FINANCIAL SUMMARY CARDS (USD + LOCAL CURRENCY) -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <p class="text-[11px] font-bold text-slate-500 uppercase">Flujo de Caja Real</p>
+                            <p id="accCashFlow" class="text-xl font-black text-slate-900 mt-1 tabular-nums">$0</p>
+                            <p id="accCashFlowLocal" class="text-[10px] text-slate-500 mt-1 tabular-nums">Cobros - Pagos efectivos</p>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <p class="text-[11px] font-bold text-slate-500 uppercase">Gastos Operativos Reales</p>
+                            <p id="accTotalExpenses" class="text-xl font-black text-red-600 mt-1 tabular-nums">$0</p>
+                            <p id="accCxP" class="text-[10px] text-amber-700 font-bold mt-1 tabular-nums">Por Pagar (CxP): $0</p>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <p class="text-[11px] font-bold text-slate-500 uppercase">Ventas Liquidadas</p>
+                            <p id="accTotalSales" class="text-xl font-black text-emerald-700 mt-1 tabular-nums">$0</p>
+                            <p id="accCxC" class="text-[10px] text-indigo-700 font-bold mt-1 tabular-nums">Por Cobrar (CxC): $0</p>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <p class="text-[11px] font-bold text-slate-500 uppercase">Activo Biológico (Pie)</p>
+                            <p id="accBioAsset" class="text-xl font-black text-indigo-700 mt-1 tabular-nums">$0</p>
+                            <p id="accBioAssetLocal" class="text-[10px] text-slate-500 mt-1 tabular-nums">0 Bs</p>
+                        </div>
+                    </div>
+
+                    <!-- KARDEX EQUATION CARD -->
+                    <div class="bg-slate-900 text-white rounded-3xl p-5 shadow-sm space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <h4 class="text-sm font-black flex items-center gap-2">
+                                <i class="fas fa-balance-scale-right text-amber-400"></i> Ecuación de Kardex Ganadero (Conciliación de Inventario)
+                            </h4>
+                            <span id="kardexStatusPill" class="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                                CUADRE EXACTO (0 DIF)
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center tabular-nums">
+                            <div class="bg-slate-800 rounded-2xl p-2.5">
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">Inv. Inicial</p>
+                                <p id="kardexInicial" class="text-lg font-black text-white">0</p>
+                            </div>
+                            <div class="bg-slate-800 rounded-2xl p-2.5">
+                                <p class="text-[10px] text-emerald-400 font-bold uppercase">+ Compras</p>
+                                <p id="kardexCompras" class="text-lg font-black text-emerald-400">0</p>
+                            </div>
+                            <div class="bg-slate-800 rounded-2xl p-2.5">
+                                <p class="text-[10px] text-amber-400 font-bold uppercase">- Ventas</p>
+                                <p id="kardexVentas" class="text-lg font-black text-amber-400">0</p>
+                            </div>
+                            <div class="bg-slate-800 rounded-2xl p-2.5">
+                                <p class="text-[10px] text-red-400 font-bold uppercase">- Bajas/Mort.</p>
+                                <p id="kardexBajas" class="text-lg font-black text-red-400">0</p>
+                            </div>
+                            <div class="bg-slate-800 rounded-2xl p-2.5">
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">± Ajustes</p>
+                                <p id="kardexAjustes" class="text-lg font-black text-slate-300">0</p>
+                            </div>
+                            <div class="bg-emerald-700 rounded-2xl p-2.5">
+                                <p class="text-[10px] text-emerald-100 font-bold uppercase">= Hato Final</p>
+                                <p id="kardexFinal" class="text-lg font-black text-white">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EXPENSES + LIQUIDATIONS TABLES -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <!-- Libro de Gastos -->
+                        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-sm font-extrabold text-slate-800">Libro de Gastos por Centro de Costo</h4>
+                                <button onclick="handleActionButton('addExpense')" class="text-xs font-bold text-indigo-600 hover:underline">+ Nuevo gasto</button>
+                            </div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto no-scrollbar">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="text-[10px] text-slate-400 uppercase border-b border-slate-200">
+                                        <tr>
+                                            <th class="py-2 pr-2">Fecha / Proveedor</th>
+                                            <th class="py-2 px-2">Centro / Cat.</th>
+                                            <th class="py-2 px-2 text-right">Monto</th>
+                                            <th class="py-2 pl-2 text-right">Pago</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="expensesTableBody" class="divide-y divide-slate-100 tabular-nums"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Liquidaciones de Matadero -->
+                        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-sm font-extrabold text-slate-800">Liquidaciones de Matadero (Merma Real)</h4>
+                                <button onclick="handleActionButton('liquidate')" class="text-xs font-bold text-amber-700 hover:underline">+ Liquidar lote</button>
+                            </div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto no-scrollbar">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="text-[10px] text-slate-400 uppercase border-b border-slate-200">
+                                        <tr>
+                                            <th class="py-2 pr-2">Fecha / Lote</th>
+                                            <th class="py-2 px-2 text-right">Romana / Merma</th>
+                                            <th class="py-2 px-2 text-right">Neto</th>
+                                            <th class="py-2 pl-2 text-right">Cobro</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="liquidationsTableBody" class="divide-y divide-slate-100 tabular-nums"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AUDIT LOG -->
+                    <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-history text-slate-500"></i> Bitácora de Auditoría y Bajas
+                            </h4>
+                            <span class="text-[11px] text-slate-400 font-semibold">Últimos movimientos trazables</span>
+                        </div>
+                        <div id="auditLogList" class="space-y-1.5 max-h-52 overflow-y-auto no-scrollbar text-xs"></div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: ANALÍTICA BI & SIMULADOR DE ESTRÉS DE PRECIOS -->
+                <section id="tab-analitica" class="space-y-5 hidden">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                            <i class="fas fa-chart-area text-indigo-600"></i> Analítica Avanzada BI & Estrés Financiero
+                        </h3>
+                        <p class="text-xs text-slate-500">Sensibilidad de márgenes ante cambios del mercado, punto de equilibrio y eficiencia zootécnica real.</p>
+                    </div>
+
+                    <!-- SIMULADOR DE ESTRÉS DE PRECIOS -->
+                    <div class="bg-slate-900 text-white rounded-3xl p-5 shadow-md border border-slate-800 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div>
+                                <h4 class="text-sm sm:text-base font-black flex items-center gap-2">
+                                    <i class="fas fa-shield-alt text-amber-400"></i> Simulador de Estrés de Precios (What-If)
+                                </h4>
+                                <p class="text-[11px] text-slate-400">Evalúa escenarios adversos de carne, costos y merma de viaje sin alterar tus datos contables reales.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="stressStatusBadge" class="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">RENTABLE</span>
+                                <button onclick="resetStressTest()" class="text-[11px] font-bold px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">Reiniciar</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-800/70 p-4 rounded-2xl border border-slate-700/80">
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-bold">
+                                    <span class="text-slate-300">Precio Venta Carne</span>
+                                    <span id="stressPriceVal" class="text-amber-400 tabular-nums">0%</span>
+                                </div>
+                                <input id="stressPriceSlider" type="range" min="-35" max="35" step="1" value="0" oninput="updateStressTest()" class="w-full accent-amber-500 cursor-pointer">
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-bold">
+                                    <span class="text-slate-300">Alza de Gastos / Dieta</span>
+                                    <span id="stressCostVal" class="text-red-400 tabular-nums">+0%</span>
+                                </div>
+                                <input id="stressCostSlider" type="range" min="-20" max="60" step="1" value="0" oninput="updateStressTest()" class="w-full accent-red-500 cursor-pointer">
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-bold">
+                                    <span class="text-slate-300">Merma de Transporte</span>
+                                    <span id="stressMermaVal" class="text-indigo-300 tabular-nums">5%</span>
+                                </div>
+                                <input id="stressMermaSlider" type="range" min="0" max="12" step="0.5" value="5" oninput="updateStressTest()" class="w-full accent-indigo-400 cursor-pointer">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 tabular-nums">
+                            <div class="bg-slate-800 rounded-2xl p-3.5 border border-slate-700">
+                                <p class="text-[10px] uppercase font-bold text-slate-400">Precio Estresado</p>
+                                <p id="stressLivePriceOut" class="text-lg font-black text-white mt-0.5">$2.15 / kg</p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Peso neto tras merma</p>
+                            </div>
+                            <div class="bg-slate-800 rounded-2xl p-3.5 border border-slate-700">
+                                <p class="text-[10px] uppercase font-bold text-slate-400">Utilidad Bajo Estrés</p>
+                                <p id="stressNetProfitOut" class="text-lg font-black text-emerald-400 mt-0.5">$0</p>
+                                <p id="stressRoiOut" class="text-[10px] text-slate-400 mt-0.5">ROI: 0%</p>
+                            </div>
+                            <div class="bg-slate-800 rounded-2xl p-3.5 border border-slate-700">
+                                <p class="text-[10px] uppercase font-bold text-slate-400">Punto de Equilibrio</p>
+                                <p id="stressBreakevenOut" class="text-lg font-black text-amber-400 mt-0.5">$0.00 / kg</p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Precio mín. sin pérdida</p>
+                            </div>
+                            <div class="bg-slate-800 rounded-2xl p-3.5 border border-slate-700">
+                                <p class="text-[10px] uppercase font-bold text-slate-400">Tope Compra Maute (220kg)</p>
+                                <p id="stressMaxBuyOut" class="text-lg font-black text-indigo-300 mt-0.5">$0</p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Para proteger 15% margen</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BI KPIS -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <p class="text-[11px] font-bold text-slate-500 uppercase">Conversión (CA)</p>
+                            <p id="biFcr" class="text-xl font-black text-slate-900 mt-1 tabular-nums">0.0 : 1</p>
+                            <p class="text-[11px] text-slate-500 mt-1">kg alimento / kg ganado</p>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <p class="text-[11px] font-bold text-slate-500 uppercase">Costo Real / kg Ganado</p>
+                            <p id="biCostPerKgGained" class="text-xl font-black text-amber-700 mt-1 tabular-nums">$0.00</p>
+                            <p class="text-[11px] text-slate-500 mt-1">Según gastos facturados</p>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <p class="text-[11px] font-bold text-slate-500 uppercase">Carne en Canal Est.</p>
+                            <p id="biCarcassTotal" class="text-xl font-black text-emerald-700 mt-1 tabular-nums">0 kg</p>
+                            <p id="biCarcassYieldTag" class="text-[11px] text-slate-500 mt-1 tabular-nums">Rendimiento: 54%</p>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                            <p class="text-[11px] font-bold text-slate-500 uppercase">Kilos Ganados Hato</p>
+                            <p id="biTotalGained" class="text-xl font-black text-indigo-700 mt-1 tabular-nums">+0 kg</p>
+                            <p class="text-[11px] text-slate-500 mt-1">Peso actual vs. ingreso</p>
+                        </div>
+                    </div>
+
+                    <!-- CHARTS GRID -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-2">
+                            <h4 class="text-sm font-extrabold text-slate-800">Gastos Reales por Categoría ($)</h4>
+                            <div class="h-60 w-full"><canvas id="biCostCategoryChart"></canvas></div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-2">
+                            <h4 class="text-sm font-extrabold text-slate-800">GDP Promedio por Raza (kg/d)</h4>
+                            <div class="h-60 w-full"><canvas id="biBreedGdpChart"></canvas></div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-2">
+                            <h4 class="text-sm font-extrabold text-slate-800">Biomasa en Pie por Campo (kg)</h4>
+                            <div class="h-60 w-full"><canvas id="biCorralChart"></canvas></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 5: CAMPOS / CORRALES DINÁMICOS -->
+                <section id="tab-corrales" class="space-y-4 hidden">
+                    <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div>
+                                <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                                    <i class="fas fa-border-all text-amber-600"></i> Campos, Potreros y Corrales Dinámicos
+                                </h3>
+                                <p class="text-xs text-slate-500">Crea tantos campos o centros de costo como maneje la finca (sin límite de 4).</p>
+                            </div>
+                            <button onclick="handleActionButton('addCorral')" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 w-max transition">
+                                <i class="fas fa-plus"></i> Nuevo Campo / Corral
+                            </button>
+                        </div>
+
+                        <div id="corralesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+
+                        <div id="corralInfo" class="bg-slate-50 p-4 rounded-2xl text-xs space-y-2.5 border border-slate-200">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <p class="font-extrabold text-slate-800 text-sm" id="corralTitle">Selecciona un campo para ver detalles y centro de costo</p>
+                                <div id="corralActionBtnSlot" class="flex gap-2"></div>
+                            </div>
+                            <p class="text-slate-600" id="corralDetail">Inspecciona ocupación, hectáreas, carga animal, gastos directos facturados y animales listos.</p>
+                            <div id="corralAnimalsList" class="flex flex-wrap gap-1.5 pt-1"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 6: PARÁMETROS, MULTIMONEDA Y RESPALDO -->
+                <section id="tab-config" class="space-y-4 hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+                            <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+                                <div id="profileAvatarInitial" class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-xl font-black">H</div>
+                                <div>
+                                    <h3 class="text-base font-black text-slate-800" id="profileName">Héctor Molina</h3>
+                                    <p class="text-xs text-slate-500">Parámetros económicos, multimoneda y metas de matadero</p>
+                                </div>
+                            </div>
+
+                            <form onsubmit="handleSaveConfig(event)" class="space-y-3 text-xs">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Nombre de la Finca</label>
+                                        <input type="text" id="cfgFarmName" maxlength="60" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Titular / Propietario</label>
+                                        <input type="text" id="cfgOwnerName" maxlength="60" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Precio Ref. ($/kg pie)</label>
+                                        <input type="number" id="cfgLivePrice" step="0.01" min="0.01" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Peso Matadero (kg)</label>
+                                        <input type="number" id="cfgSlaughterWeight" step="5" min="250" max="900" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Meta GDP (kg/día)</label>
+                                        <input type="number" id="cfgTargetGdp" step="0.05" min="0.2" max="3" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Rend. Canal (%)</label>
+                                        <input type="number" id="cfgCarcassYield" step="0.5" min="40" max="70" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Moneda Local</label>
+                                        <input type="text" id="cfgLocalCurrency" maxlength="6" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Tasa (x 1 USD)</label>
+                                        <input type="number" id="cfgExchangeRate" step="0.01" min="0.01" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl transition shadow-sm">
+                                    Guardar Configuración
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4 flex flex-col justify-between">
+                            <div class="space-y-3">
+                                <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
+                                    <i class="fas fa-database text-indigo-600"></i> Respaldo Integral y Carga Real
+                                </h4>
+                                <p class="text-xs text-slate-500">
+                                    Exporta toda la contabilidad, corrales e inventario en JSON para respaldo diario o migración entre equipos, o carga masivamente desde CSV.
+                                </p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <button onclick="exportJSON()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                                        <i class="fas fa-download"></i> Respaldo JSON
+                                    </button>
+                                    <label class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition">
+                                        <i class="fas fa-upload"></i> Restaurar JSON
+                                        <input type="file" id="jsonImportInput" accept=".json,application/json" onchange="importJSON(event)" class="hidden">
+                                    </label>
+                                </div>
+                                <button onclick="downloadCSVTemplate()" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                                    <i class="fas fa-file-excel"></i> Descargar Plantilla Excel/CSV para Carga Masiva
+                                </button>
+                            </div>
+
+                            <div class="bg-red-50/60 border border-red-200 rounded-2xl p-3 space-y-2 text-xs">
+                                <p class="font-bold text-red-900">Reiniciar Base de Datos</p>
+                                <p class="text-[11px] text-red-700">Elige vaciar todo para cargar los datos reales de la finca desde cero, o restaurar el ejemplo inicial.</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button onclick="openModal('confirmClearAll')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl text-xs transition">
+                                        Empezar desde 0
+                                    </button>
+                                    <button onclick="resetDemoDataset()" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold py-2 rounded-xl text-xs transition">
+                                        Restaurar Ejemplo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+
+            <!-- MOBILE BOTTOM NAVIGATION -->
+            <nav class="lg:hidden bg-white border-t border-slate-200 px-3 py-2 flex justify-between items-center fixed bottom-0 left-0 right-0 z-30">
+                <button onclick="switchTab('home')" id="nav-home" class="flex-1 flex flex-col items-center text-emerald-700 transition">
+                    <i class="fas fa-home text-base"></i>
+                    <span class="text-[10px] font-bold mt-0.5">Inicio</span>
+                </button>
+                <button onclick="switchTab('inventario')" id="nav-inventario" class="flex-1 flex flex-col items-center text-slate-400 hover:text-emerald-700 transition">
+                    <i class="fas fa-clipboard-list text-base"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">Hato</span>
+                </button>
+                <button onclick="switchTab('contabilidad')" id="nav-contabilidad" class="flex-1 flex flex-col items-center text-slate-400 hover:text-emerald-700 transition">
+                    <i class="fas fa-calculator text-base"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">Contab.</span>
+                </button>
+                <button onclick="switchTab('analitica')" id="nav-analitica" class="flex-1 flex flex-col items-center text-slate-400 hover:text-emerald-700 transition">
+                    <i class="fas fa-chart-bar text-base"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">BI</span>
+                </button>
+                <button onclick="switchTab('corrales')" id="nav-corrales" class="flex-1 flex flex-col items-center text-slate-400 hover:text-emerald-700 transition">
+                    <i class="fas fa-border-all text-base"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">Campos</span>
+                </button>
+            </nav>
+
+        </div>
+    </div>
+
+    <!-- MODAL OVERLAY -->
+    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden opacity-0 transition-opacity duration-200 p-0 sm:p-4">
+        <div id="modalContainer" class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 transform translate-y-8 transition-transform duration-200 max-h-[90dvh] overflow-y-auto no-scrollbar">
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'agrocampo_erp_cebo_v7';
+        const WEEK_LABELS = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5', 'Sem 6', 'Actual'];
+        const VALID_ROLES = ['Admin', 'Contadora', 'Capataz', 'Vet'];
+        const PAGE_SIZE = 50;
+
+        const charts = {};
+        let modalHideTimeout = null;
+        let activeTab = 'home';
+        let invVisibleLimit = PAGE_SIZE;
+
+        function createStarterState() {
+            return {
+                role: 'Admin',
+                farmName: 'Hacienda El Roble (Cebo)',
+                ownerName: 'Héctor Molina',
+                liveWeightPriceKg: 2.15,
+                slaughterWeightGoal: 500,
+                targetGdp: 1.15,
+                carcassYieldPct: 54.0,
+                localCurrency: 'Bs',
+                exchangeRate: 50.00,
+                kardex: { inicial: 12, compras: 0, ventas: 0, bajas: 0, ajustes: 0 },
+                corrales: [
+                    { id: 'A', nombre: 'Corral A · Recepción', etapa: 'Adaptación', dieta: 'Heno + Silaje 40% + Núcleo', hectareas: 8, capacidad: 400, color: 'slate' },
+                    { id: 'B', nombre: 'Corral B · Levante', etapa: 'Crecimiento Muscular', dieta: 'Silaje Maíz + Concentrado 16% PB', hectareas: 12, capacidad: 400, color: 'teal' },
+                    { id: 'C', nombre: 'Corral C · Engorde', etapa: 'Engorde Intensivo', dieta: 'Maíz Molido + Soya + Melaza', hectareas: 14, capacidad: 400, color: 'emerald' },
+                    { id: 'D', nombre: 'Corral D · Finalización', etapa: 'Acabado / Matadero', dieta: 'Alta Energía + Grasa Protegida', hectareas: 10, capacidad: 400, color: 'amber' }
+                ],
+                listaAnimales: [
+                    { id: 'N-001', tipo: 'Novillo', raza: 'Brangus', pesoIngreso: 260, pesoActual: 518, diasEnCebo: 195, costoCompra: 520, consumoDiarioKg: 9.8, corral: 'D', estado: 'Sano', proveedor: 'Subasta San Cristóbal' },
+                    { id: 'N-002', tipo: 'Novillo', raza: 'Brahman', pesoIngreso: 270, pesoActual: 506, diasEnCebo: 200, costoCompra: 535, consumoDiarioKg: 9.5, corral: 'D', estado: 'Sano', proveedor: 'Subasta San Cristóbal' },
+                    { id: 'T-003', tipo: 'Torete', raza: 'Nelore', pesoIngreso: 280, pesoActual: 524, diasEnCebo: 188, costoCompra: 560, consumoDiarioKg: 10.1, corral: 'D', estado: 'Sano', proveedor: 'Hato La Esperanza' },
+                    { id: 'N-004', tipo: 'Novillo', raza: 'Senepol', pesoIngreso: 255, pesoActual: 468, diasEnCebo: 175, costoCompra: 510, consumoDiarioKg: 9.2, corral: 'C', estado: 'Sano', proveedor: 'Hato La Esperanza' },
+                    { id: 'N-005', tipo: 'Novillo', raza: 'Brangus', pesoIngreso: 265, pesoActual: 482, diasEnCebo: 165, costoCompra: 530, consumoDiarioKg: 9.4, corral: 'C', estado: 'Sano', proveedor: 'Agropecuaria Sur' },
+                    { id: 'T-006', tipo: 'Torete', raza: 'Mestizo Cebú', pesoIngreso: 250, pesoActual: 445, diasEnCebo: 160, costoCompra: 495, consumoDiarioKg: 9.0, corral: 'C', estado: 'Enfermo (Neumonía)', proveedor: 'Agropecuaria Sur' },
+                    { id: 'N-007', tipo: 'Novillo', raza: 'Brahman', pesoIngreso: 240, pesoActual: 428, diasEnCebo: 155, costoCompra: 480, consumoDiarioKg: 8.8, corral: 'C', estado: 'Sano', proveedor: 'Subasta San Cristóbal' },
+                    { id: 'M-008', tipo: 'Maute', raza: 'Nelore', pesoIngreso: 210, pesoActual: 342, diasEnCebo: 115, costoCompra: 430, consumoDiarioKg: 7.8, corral: 'B', estado: 'Sano', proveedor: 'Finca Las Palmas' },
+                    { id: 'M-009', tipo: 'Maute', raza: 'Brangus', pesoIngreso: 220, pesoActual: 368, diasEnCebo: 115, costoCompra: 455, consumoDiarioKg: 8.1, corral: 'B', estado: 'Sano', proveedor: 'Finca Las Palmas' },
+                    { id: 'M-010', tipo: 'Maute', raza: 'Mestizo Cebú', pesoIngreso: 205, pesoActual: 318, diasEnCebo: 105, costoCompra: 415, consumoDiarioKg: 7.5, corral: 'B', estado: 'Sano', proveedor: 'Finca Las Palmas' },
+                    { id: 'M-011', tipo: 'Maute', raza: 'Brahman', pesoIngreso: 195, pesoActual: 228, diasEnCebo: 32, costoCompra: 400, consumoDiarioKg: 6.4, corral: 'A', estado: 'Sano', proveedor: 'Subasta San Cristóbal' },
+                    { id: 'M-012', tipo: 'Maute', raza: 'Senepol', pesoIngreso: 200, pesoActual: 236, diasEnCebo: 32, costoCompra: 410, consumoDiarioKg: 6.5, corral: 'A', estado: 'Sano', proveedor: 'Subasta San Cristóbal' }
+                ],
+                gastos: [
+                    { id: 'G-101', fecha: '2026-11-18', categoria: 'Alimento', centroCosto: 'Corral D', proveedor: 'Alimentos Balanceados CA', factura: 'FAC-00412', descripcion: 'Maíz molido + Núcleo finalización', monto: 840, estadoPago: 'Pagado' },
+                    { id: 'G-102', fecha: '2026-11-15', categoria: 'Alimento', centroCosto: 'Corral C', proveedor: 'Alimentos Balanceados CA', factura: 'FAC-00398', descripcion: 'Concentrado engorde + Melaza', monto: 760, estadoPago: 'Por Pagar' },
+                    { id: 'G-103', fecha: '2026-11-12', categoria: 'Sanidad', centroCosto: 'General', proveedor: 'Agrovet Andina', factura: 'FAC-8821', descripcion: 'Vacuna Clostridial + Antibiótico T-006', monto: 135, estadoPago: 'Pagado' },
+                    { id: 'G-104', fecha: '2026-11-10', categoria: 'Nómina', centroCosto: 'General', proveedor: 'Personal Finca', factura: 'NOM-11A', descripcion: 'Quincena capataz y obreros', monto: 420, estadoPago: 'Pagado' },
+                    { id: 'G-105', fecha: '2026-11-05', categoria: 'Flete', centroCosto: 'Corral A', proveedor: 'Transporte Ganadero', factura: 'FLT-091', descripcion: 'Flete ingreso de mautes', monto: 180, estadoPago: 'Pagado' }
+                ],
+                liquidaciones: [],
+                historialPesajes: [
+                    { fecha: '2026-11-20', animal: 'T-003', pesoAnterior: 508, pesoNuevo: 524, ganancia: 16, diasLapso: 14 },
+                    { fecha: '2026-11-19', animal: 'N-001', pesoAnterior: 502, pesoNuevo: 518, ganancia: 16, diasLapso: 14 }
+                ],
+                historialSanitario: [
+                    { fecha: '2026-11-19', evento: 'Antibiótico Respiratorio', animal: 'T-006', estado: 'En proceso', costo: 28 },
+                    { fecha: '2026-11-12', evento: 'Desparasitación Ivermectina', animal: 'Corral A', estado: 'Completado', costo: 42 }
+                ],
+                auditLog: [
+                    { fecha: '2026-11-21 08:00', rol: 'Admin', tipo: 'INICIO', detalle: 'Apertura de periodo contable con 12 cabezas iniciales.' }
+                ],
+                gananciaSemanalKg: [88, 92, 95, 91, 99, 102, 106]
+            };
+        }
+
+        function createEmptyState(keepConfig) {
+            return {
+                role: keepConfig?.role || 'Admin',
+                farmName: keepConfig?.farmName || 'Hacienda El Roble (Cebo)',
+                ownerName: keepConfig?.ownerName || 'Héctor Molina',
+                liveWeightPriceKg: keepConfig?.liveWeightPriceKg ?? 2.15,
+                slaughterWeightGoal: keepConfig?.slaughterWeightGoal ?? 500,
+                targetGdp: keepConfig?.targetGdp ?? 1.15,
+                carcassYieldPct: keepConfig?.carcassYieldPct ?? 54.0,
+                localCurrency: keepConfig?.localCurrency || 'Bs',
+                exchangeRate: keepConfig?.exchangeRate ?? 50.00,
+                kardex: { inicial: 0, compras: 0, ventas: 0, bajas: 0, ajustes: 0 },
+                corrales: [
+                    { id: 'A', nombre: 'Corral A · Recepción', etapa: 'Adaptación', dieta: 'Forraje + Núcleo', hectareas: 10, capacidad: 400, color: 'slate' },
+                    { id: 'B', nombre: 'Corral B · Engorde', etapa: 'Engorde Intensivo', dieta: 'Ración Balanceada', hectareas: 15, capacidad: 400, color: 'emerald' }
+                ],
+                listaAnimales: [],
+                gastos: [],
+                liquidaciones: [],
+                historialPesajes: [],
+                historialSanitario: [],
+                auditLog: [
+                    { fecha: nowStamp(), rol: keepConfig?.role || 'Admin', tipo: 'RESET', detalle: 'Base de datos vaciada para operación real desde cero.' }
+                ],
+                gananciaSemanalKg: [0, 0, 0, 0, 0, 0, 0]
+            };
+        }
+
+        function nowStamp() {
+            const d = new Date();
+            return `${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function todayISO() {
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        function escapeHTML(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function escapeCSVCell(value) {
+            let str = String(value ?? '');
+            if (/^[=+\-@]/.test(str)) str = "'" + str;
+            if (/[",\r\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+            return str;
+        }
+
+        function loadSafeState() {
+            const fallback = createStarterState();
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return fallback;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.listaAnimales) || !Array.isArray(parsed.corrales)) {
+                    return fallback;
+                }
+                return {
+                    ...fallback,
+                    ...parsed,
+                    kardex: { ...fallback.kardex, ...(parsed.kardex || {}) }
+                };
+            } catch {
+                return fallback;
+            }
+        }
+
+        let state = loadSafeState();
+
+        function logAudit(tipo, detalle) {
+            state.auditLog.unshift({ fecha: nowStamp(), rol: state.role, tipo, detalle });
+            if (state.auditLog.length > 200) state.auditLog.length = 200;
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch {
+                alertModal('Aviso: almacenamiento local lleno. Descarga un respaldo JSON para liberar espacio.', 'warning');
+            }
+            updateUIState();
+        }
+
+        // === FORMATEADORES ===
+        function formatUSD(val, compact = false) {
+            const num = Number(val || 0);
+            const sign = num < 0 ? '-' : '';
+            const abs = Math.abs(num);
+            if (compact && abs >= 1000000) return `${sign}$${(abs / 1000000).toFixed(2)}M`;
+            return `${sign}$${Math.round(abs).toLocaleString('en-US')}`;
+        }
+
+        function formatLocal(usdVal) {
+            const local = Number(usdVal || 0) * (Number(state.exchangeRate) || 1);
+            return `${Math.round(local).toLocaleString('es-ES')} ${state.localCurrency}`;
+        }
+
+        function formatMass(kg) {
+            const num = Number(kg || 0);
+            if (num >= 10000) return `${(num / 1000).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} t`;
+            return `${Math.round(num).toLocaleString('es-ES')} kg`;
+        }
+
+        // === CÁLCULOS ZOOTÉCNICOS Y CONTABLES ===
+        function calcAnimalGdp(a) {
+            const days = Number(a.diasEnCebo) || 0;
+            return days > 0 ? (Number(a.pesoActual) - Number(a.pesoIngreso)) / days : 0;
+        }
+
+        function isAnimalSick(a) {
+            return /enferm|neumon|tratamiento|fiebre|pododermatitis|timpanismo/i.test(a.estado);
+        }
+
+        function isReadyForSlaughter(a) {
+            return Number(a.pesoActual) >= state.slaughterWeightGoal && !isAnimalSick(a);
+        }
+
+        function computeMetrics() {
+            const animals = state.listaAnimales;
+            const totalAnimales = animals.length;
+            let totalBiomass = 0, totalInitialKg = 0, gdpSum = 0, gdpCount = 0;
+            let totalDailyIntake = 0, totalDailyGain = 0, activePurchaseCost = 0;
+            let readyKg = 0;
+            const sick = [];
+            const ready = [];
+
+            for (let i = 0; i < totalAnimales; i++) {
+                const a = animals[i];
+                const pa = Number(a.pesoActual) || 0;
+                const pi = Number(a.pesoIngreso) || 0;
+                const days = Number(a.diasEnCebo) || 0;
+                const gdp = days > 0 ? (pa - pi) / days : 0;
+
+                totalBiomass += pa;
+                totalInitialKg += pi;
+                if (days > 0) { gdpSum += gdp; gdpCount++; }
+                totalDailyIntake += Number(a.consumoDiarioKg) || 0;
+                totalDailyGain += Math.max(0, gdp);
+                activePurchaseCost += Number(a.costoCompra) || 0;
+
+                if (isAnimalSick(a)) sick.push(a);
+                else if (pa >= state.slaughterWeightGoal) { ready.push(a); readyKg += pa; }
+            }
+
+            const totalKgGained = Math.max(0, totalBiomass - totalInitialKg);
+            const avgWeight = totalAnimales > 0 ? totalBiomass / totalAnimales : 0;
+            const avgGdp = gdpCount > 0 ? gdpSum / gdpCount : 0;
+            const fcr = totalDailyGain > 0 ? totalDailyIntake / totalDailyGain : 0;
+
+            // Contabilidad Real (Gastos Facturados + Liquidaciones)
+            let totalExpenses = 0, paidExpenses = 0, cxp = 0;
+            state.gastos.forEach(g => {
+                const amt = Number(g.monto) || 0;
+                totalExpenses += amt;
+                if (g.estadoPago === 'Pagado') paidExpenses += amt;
+                else cxp += amt;
+            });
+
+            let totalSales = 0, collectedSales = 0, cxc = 0, soldPurchaseCost = 0;
+            state.liquidaciones.forEach(l => {
+                const net = Number(l.ingresoNeto) || 0;
+                totalSales += net;
+                soldPurchaseCost += Number(l.costoCompraLote) || 0;
+                if (l.estadoCobro === 'Cobrado') collectedSales += net;
+                else cxc += net;
+            });
+
+            const grossLiveValue = totalBiomass * state.liveWeightPriceKg;
+            const totalEconomicIn = grossLiveValue + totalSales;
+            const totalEconomicOut = activePurchaseCost + soldPurchaseCost + totalExpenses;
+            const netProfit = totalEconomicIn - totalEconomicOut;
+            const roiPct = totalEconomicOut > 0 ? (netProfit / totalEconomicOut) * 100 : 0;
+            const costPerKgGained = totalKgGained > 0 ? totalExpenses / totalKgGained : 0;
+            const cashFlowReal = collectedSales - paidExpenses;
+            const carcassKg = totalBiomass * (state.carcassYieldPct / 100);
+            const weeklyTargetKg = Math.round(totalAnimales * state.targetGdp * 7);
+
+            // Kardex check
+            const k = state.kardex;
+            const kardexExpected = (k.inicial || 0) + (k.compras || 0) - (k.ventas || 0) - (k.bajas || 0) + (k.ajustes || 0);
+            const kardexDiff = totalAnimales - kardexExpected;
+
+            return {
+                totalAnimales, sick, ready, readyKg,
+                totalBiomass, totalKgGained, avgWeight, avgGdp, fcr, totalDailyIntake,
+                activePurchaseCost, totalExpenses, paidExpenses, cxp,
+                totalSales, collectedSales, cxc, soldPurchaseCost,
+                grossLiveValue, netProfit, roiPct, costPerKgGained, cashFlowReal,
+                carcassKg, weeklyTargetKg, kardexExpected, kardexDiff
+            };
+        }
+
+        // === INICIALIZACIÓN ===
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('es-ES', {
+                day: 'numeric', month: 'short', year: 'numeric'
+            });
+            updateClock();
+            setInterval(updateClock, 15000);
+
+            updateNetworkStatus();
+            window.addEventListener('online', updateNetworkStatus);
+            window.addEventListener('offline', updateNetworkStatus);
+
+            const overlay = document.getElementById('modalOverlay');
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+            });
+
+            document.getElementById('modalBody').addEventListener('click', handleModalClick);
+            document.getElementById('modalBody').addEventListener('input', handleModalInput);
+            document.getElementById('modalBody').addEventListener('change', handleModalInput);
+
+            // Delegación para tablas dinámicas (Inventario y Contabilidad)
+            document.getElementById('mainContent').addEventListener('click', handleMainClick);
+
+            updateUIState();
+        });
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('currentTime').innerText =
+                `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function updateNetworkStatus() {
+            const badge = document.getElementById('syncBadge');
+            const dot = document.getElementById('syncDot');
+            const text = document.getElementById('syncText');
+            if (!badge) return;
+            if (navigator.onLine) {
+                badge.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200';
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-500 badge-pulse';
+                text.innerText = 'Online';
+            } else {
+                badge.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200';
+                dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+                text.innerText = 'Offline';
+            }
+        }
+
+        function updateUIState() {
+            const m = computeMetrics();
+            const firstName = state.ownerName.trim().split(/\s+/)[0] || 'Usuario';
+
+            // Header & Sidebar
+            document.getElementById('farmNameHeader').innerText = state.farmName;
+            document.getElementById('sidebarFarmName').innerText = state.farmName;
+            document.getElementById('sidebarOwnerName').innerText = state.ownerName;
+            document.getElementById('sidebarHeadCount').innerText = `${m.totalAnimales.toLocaleString('es-ES')} cabezas activas`;
+            document.getElementById('headerRateDisplay').innerText = `1 USD = ${Number(state.exchangeRate).toFixed(2)} ${state.localCurrency}`;
+
+            document.getElementById('userNameDisplay').innerText = firstName;
+            document.getElementById('roleSelector').value = state.role;
+            document.getElementById('roleBadge').innerText = `Rol: ${state.role}`;
+            document.getElementById('totalHatoBadge').innerText = `${m.totalAnimales.toLocaleString('es-ES')} cabezas`;
+            document.getElementById('totalCorralesBadge').innerText = `${state.corrales.length} campos`;
+
+            // Kardex Header Badge
+            const khb = document.getElementById('kardexHeaderBadge');
+            if (m.kardexDiff === 0) {
+                khb.className = 'hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-extrabold';
+                khb.innerHTML = '<i class="fas fa-check-circle text-[9px]"></i> Kardex Cuadrado';
+            } else {
+                khb.className = 'hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-[10px] font-extrabold';
+                khb.innerHTML = `<i class="fas fa-exclamation-triangle text-[9px]"></i> Dif Kardex: ${m.kardexDiff}`;
+            }
+
+            // Home KPIs
+            document.getElementById('homeAvgGdp').innerText = m.avgGdp.toFixed(2);
+            document.getElementById('homeTargetGdpText').innerText = `Obj: ${state.targetGdp.toFixed(2)} kg/d`;
+            const gdpGoalPct = state.targetGdp > 0 ? (m.avgGdp / state.targetGdp) * 100 : 0;
+            const gdpBadge = document.getElementById('gdpGoalBadge');
+            gdpBadge.innerText = `Meta: ${gdpGoalPct.toFixed(0)}%`;
+            gdpBadge.className = gdpGoalPct >= 95
+                ? 'text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 tabular-nums'
+                : 'text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 tabular-nums';
+
+            document.getElementById('homeReadyCount').innerText = m.ready.length.toLocaleString('es-ES');
+            document.getElementById('homeReadyKg').innerText = formatMass(m.readyKg);
+            document.getElementById('homeSlaughterGoal').innerText = state.slaughterWeightGoal;
+
+            document.getElementById('homeGrossLiveValue').innerText = formatUSD(m.grossLiveValue, true);
+            document.getElementById('homeTotalBiomass').innerText = formatMass(m.totalBiomass);
+            document.getElementById('homeAvgWeight').innerText = Math.round(m.avgWeight);
+
+            const homeProfitEl = document.getElementById('homeNetProfit');
+            homeProfitEl.innerText = formatUSD(m.netProfit, true);
+            homeProfitEl.className = m.netProfit >= 0
+                ? 'text-2xl font-black text-indigo-700 mt-1 tabular-nums'
+                : 'text-2xl font-black text-red-600 mt-1 tabular-nums';
+            document.getElementById('homeRealExpenses').innerText = formatUSD(m.totalExpenses, true);
+            document.getElementById('homeRoiPct').innerText = `${m.roiPct.toFixed(1)}%`;
+            document.getElementById('homeCxC').innerText = formatUSD(m.cxc);
+            document.getElementById('homeCxP').innerText = formatUSD(m.cxp);
+            document.getElementById('homeDailyFeedTons').innerText = formatMass(m.totalDailyIntake);
+
+            // Contabilidad KPIs & Kardex
+            document.getElementById('accCashFlow').innerText = formatUSD(m.cashFlowReal);
+            document.getElementById('accCashFlow').className = m.cashFlowReal >= 0 ? 'text-xl font-black text-emerald-700 mt-1 tabular-nums' : 'text-xl font-black text-red-600 mt-1 tabular-nums';
+            document.getElementById('accCashFlowLocal').innerText = formatLocal(m.cashFlowReal);
+            document.getElementById('accTotalExpenses').innerText = formatUSD(m.totalExpenses);
+            document.getElementById('accCxP').innerText = `Por Pagar (CxP): ${formatUSD(m.cxp)}`;
+            document.getElementById('accTotalSales').innerText = formatUSD(m.totalSales);
+            document.getElementById('accCxC').innerText = `Por Cobrar (CxC): ${formatUSD(m.cxc)}`;
+            document.getElementById('accBioAsset').innerText = formatUSD(m.grossLiveValue, true);
+            document.getElementById('accBioAssetLocal').innerText = formatLocal(m.grossLiveValue);
+
+            document.getElementById('kardexInicial').innerText = state.kardex.inicial;
+            document.getElementById('kardexCompras').innerText = state.kardex.compras;
+            document.getElementById('kardexVentas').innerText = state.kardex.ventas;
+            document.getElementById('kardexBajas').innerText = state.kardex.bajas;
+            document.getElementById('kardexAjustes').innerText = state.kardex.ajustes;
+            document.getElementById('kardexFinal').innerText = m.totalAnimales;
+            const kPill = document.getElementById('kardexStatusPill');
+            if (m.kardexDiff === 0) {
+                kPill.className = 'text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
+                kPill.innerText = 'CUADRE EXACTO (0 DIF)';
+            } else {
+                kPill.className = 'text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-400/30';
+                kPill.innerText = `DESCUADRE: ${m.kardexDiff}`;
+            }
+
+            // BI KPIs
+            document.getElementById('biFcr').innerText = m.fcr > 0 ? `${m.fcr.toFixed(1)} : 1` : 'N/A';
+            document.getElementById('biCostPerKgGained').innerText = `$${m.costPerKgGained.toFixed(2)}`;
+            document.getElementById('biCarcassTotal').innerText = formatMass(m.carcassKg);
+            document.getElementById('biCarcassYieldTag').innerText = `Rendimiento: ${state.carcassYieldPct.toFixed(1)}%`;
+            document.getElementById('biTotalGained').innerText = `+${formatMass(m.totalKgGained)}`;
+
+            // Config sync
+            document.getElementById('profileAvatarInitial').innerText = firstName.charAt(0).toUpperCase();
+            document.getElementById('profileName').innerText = state.ownerName;
+            document.getElementById('cfgFarmName').value = state.farmName;
+            document.getElementById('cfgOwnerName').value = state.ownerName;
+            document.getElementById('cfgLivePrice').value = state.liveWeightPriceKg;
+            document.getElementById('cfgSlaughterWeight').value = state.slaughterWeightGoal;
+            document.getElementById('cfgTargetGdp').value = state.targetGdp;
+            document.getElementById('cfgCarcassYield').value = state.carcassYieldPct;
+            document.getElementById('cfgLocalCurrency').value = state.localCurrency;
+            document.getElementById('cfgExchangeRate').value = state.exchangeRate;
+
+            syncInventoryCorralSelect();
+            renderAlerts(m.ready, m.sick);
+            renderInventoryTable();
+            renderAccountingTables();
+            renderCorralesGrid();
+            updateStressTest();
+
+            if (activeTab === 'home') renderHomeChart(m.weeklyTargetKg);
+            if (activeTab === 'analitica') renderAnalyticsCharts();
+        }
+
+        function syncInventoryCorralSelect() {
+            const sel = document.getElementById('invCorralFilter');
+            if (!sel) return;
+            const currentVal = sel.value || 'Todos';
+            sel.innerHTML = `<option value="Todos">Todos los Campos</option>` +
+                state.corrales.map(c => `<option value="${escapeHTML(c.id)}">${escapeHTML(c.nombre)}</option>`).join('');
+            if ([...sel.options].some(o => o.value === currentVal)) sel.value = currentVal;
+        }
+
+        function onInventoryFilterChange() {
+            invVisibleLimit = PAGE_SIZE;
+            renderInventoryTable();
+        }
+
+        function renderInventoryTable() {
+            const tbody = document.getElementById('inventoryTableBody');
+            const pagSlot = document.getElementById('inventoryPaginationSlot');
+            if (!tbody) return;
+
+            document.getElementById('invTotalCount').innerText = state.listaAnimales.length.toLocaleString('es-ES');
+
+            const q = (document.getElementById('invSearchInput')?.value || '').trim().toLowerCase();
+            const corralF = document.getElementById('invCorralFilter')?.value || 'Todos';
+            const statusF = document.getElementById('invStatusFilter')?.value || 'Todos';
+
+            const filtered = state.listaAnimales.filter(a => {
+                const mCorral = corralF === 'Todos' || a.corral === corralF;
+                const mStatus =
+                    statusF === 'Todos' ||
+                    (statusF === 'Listos' && isReadyForSlaughter(a)) ||
+                    (statusF === 'Clinicos' && isAnimalSick(a)) ||
+                    a.tipo === statusF;
+                const mText = !q ||
+                    a.id.toLowerCase().includes(q) ||
+                    a.raza.toLowerCase().includes(q) ||
+                    (a.proveedor || '').toLowerCase().includes(q) ||
+                    a.estado.toLowerCase().includes(q);
+                return mCorral && mStatus && mText;
+            });
+
+            document.getElementById('invShowingCounter').innerText =
+                `${Math.min(invVisibleLimit, filtered.length).toLocaleString('es-ES')} de ${filtered.length.toLocaleString('es-ES')}`;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="py-10 text-center text-slate-400">No hay animales registrados con este filtro. Usa "Individual", "Lote Masivo" o "Importar CSV".</td></tr>`;
+                pagSlot.innerHTML = '';
+                return;
+            }
+
+            const slice = filtered.slice(0, invVisibleLimit);
+            tbody.innerHTML = slice.map(a => {
+                const gdp = calcAnimalGdp(a);
+                const ready = isReadyForSlaughter(a);
+                const sick = isAnimalSick(a);
+                const badge = sick
+                    ? `<span class="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded">${escapeHTML(a.estado)}</span>`
+                    : ready
+                        ? `<span class="bg-amber-100 text-amber-900 font-extrabold px-2 py-0.5 rounded">Listo 🚛</span>`
+                        : `<span class="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded">Sano</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-2.5 px-4">
+                            <p class="font-extrabold text-slate-800">${escapeHTML(a.id)}</p>
+                            <p class="text-[10px] text-slate-400">${escapeHTML(a.tipo)}</p>
+                        </td>
+                        <td class="py-2.5 px-3 text-slate-700 font-medium">${escapeHTML(a.raza)}</td>
+                        <td class="py-2.5 px-3"><span class="bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">Campo ${escapeHTML(a.corral)}</span></td>
+                        <td class="py-2.5 px-3 text-right">
+                            <span class="font-black text-slate-900">${a.pesoActual} kg</span>
+                            <span class="block text-[10px] text-slate-400">Ing: ${a.pesoIngreso} kg (${a.diasEnCebo}d)</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-right font-black text-emerald-700">${gdp.toFixed(2)}</td>
+                        <td class="py-2.5 px-3 text-right text-slate-600">${formatUSD(a.costoCompra)}</td>
+                        <td class="py-2.5 px-3">${badge}</td>
+                        <td class="py-2.5 px-4 text-right">
+                            <div class="inline-flex items-center gap-1">
+                                <button data-main-action="weigh-animal" data-id="${escapeHTML(a.id)}" class="bg-amber-50 hover:bg-amber-100 text-amber-800 p-1.5 rounded-lg" title="Registrar Pesaje">
+                                    <i class="fas fa-balance-scale"></i>
+                                </button>
+                                <button data-main-action="qr-animal" data-id="${escapeHTML(a.id)}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 p-1.5 rounded-lg" title="Ver QR">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
+                                <button data-main-action="delete-animal" data-id="${escapeHTML(a.id)}" class="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-lg" title="Dar de Baja / Eliminar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (filtered.length > invVisibleLimit) {
+                const remaining = filtered.length - invVisibleLimit;
+                pagSlot.innerHTML = `<button data-main-action="load-more-inv" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Cargar ${Math.min(PAGE_SIZE, remaining)} más (${remaining.toLocaleString('es-ES')} restantes)</button>`;
+            } else {
+                pagSlot.innerHTML = `<span class="text-[11px] text-slate-400">Fin del listado (${filtered.length.toLocaleString('es-ES')} registros)</span>`;
+            }
+        }
+
+        function renderAccountingTables() {
+            // Gastos
+            const expBody = document.getElementById('expensesTableBody');
+            if (state.gastos.length === 0) {
+                expBody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-400">Sin facturas registradas.</td></tr>`;
+            } else {
+                expBody.innerHTML = state.gastos.map(g => {
+                    const isPaid = g.estadoPago === 'Pagado';
+                    return `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 pr-2">
+                                <p class="font-bold text-slate-800">${escapeHTML(g.proveedor)} <span class="text-[10px] font-normal text-slate-400">${escapeHTML(g.factura || '')}</span></p>
+                                <p class="text-[10px] text-slate-500">${escapeHTML(g.fecha)} · ${escapeHTML(g.descripcion)}</p>
+                            </td>
+                            <td class="py-2 px-2">
+                                <span class="bg-slate-100 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[10px]">${escapeHTML(g.categoria)}</span>
+                                <span class="block text-[10px] text-slate-400 mt-0.5">${escapeHTML(g.centroCosto)}</span>
+                            </td>
+                            <td class="py-2 px-2 text-right font-black text-slate-900">${formatUSD(g.monto)}</td>
+                            <td class="py-2 pl-2 text-right">
+                                <div class="inline-flex items-center gap-1">
+                                    <button data-main-action="toggle-expense" data-id="${escapeHTML(g.id)}" class="text-[10px] font-bold px-2 py-0.5 rounded ${isPaid ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-100 text-amber-900'}" title="Cambiar estado de pago">
+                                        ${escapeHTML(g.estadoPago)}
+                                    </button>
+                                    <button data-main-action="delete-expense" data-id="${escapeHTML(g.id)}" class="text-slate-400 hover:text-red-600 p-1" title="Eliminar gasto">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Liquidaciones
+            const liqBody = document.getElementById('liquidationsTableBody');
+            if (state.liquidaciones.length === 0) {
+                liqBody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-400">Aún no se han liquidado ventas a matadero.</td></tr>`;
+            } else {
+                liqBody.innerHTML = state.liquidaciones.map(l => {
+                    const isCol = l.estadoCobro === 'Cobrado';
+                    return `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 pr-2">
+                                <p class="font-bold text-slate-800">${escapeHTML(l.comprador)} (${l.cantidad} cab)</p>
+                                <p class="text-[10px] text-slate-500">${escapeHTML(l.fecha)} · ${escapeHTML(l.aretesResumen)}</p>
+                            </td>
+                            <td class="py-2 px-2 text-right">
+                                <span class="font-bold text-slate-800">${l.pesoRomana.toLocaleString('es-ES')} kg</span>
+                                <span class="block text-[10px] text-amber-700">Merma: ${l.mermaPct.toFixed(1)}%</span>
+                            </td>
+                            <td class="py-2 px-2 text-right font-black text-emerald-700">${formatUSD(l.ingresoNeto)}</td>
+                            <td class="py-2 pl-2 text-right">
+                                <button data-main-action="toggle-sale" data-id="${escapeHTML(l.id)}" class="text-[10px] font-bold px-2 py-0.5 rounded ${isCol ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-100 text-indigo-800'}" title="Marcar cobrado / pendiente">
+                                    ${escapeHTML(l.estadoCobro)}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Bitácora
+            const auditEl = document.getElementById('auditLogList');
+            auditEl.innerHTML = state.auditLog.slice(0, 30).map(ev => `
+                <div class="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 flex flex-wrap justify-between items-center gap-2">
+                    <div>
+                        <span class="font-black text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 mr-1.5">${escapeHTML(ev.tipo)}</span>
+                        <span class="text-slate-700 font-medium">${escapeHTML(ev.detalle)}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 tabular-nums">${escapeHTML(ev.fecha)} · ${escapeHTML(ev.rol)}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderAlerts(ready, sick) {
+            const readyEl = document.getElementById('readySlaughterAlert');
+            if (ready.length === 0) {
+                readyEl.innerHTML = `
+                    <div class="bg-slate-50 border-l-4 border-slate-400 p-3 rounded-r-xl text-xs">
+                        <p class="font-bold text-slate-700">Sin lote listo para matadero</p>
+                        <p class="text-[11px] text-slate-500">Objetivo actual: ≥${state.slaughterWeightGoal} kg.</p>
+                    </div>`;
+            } else {
+                const kgReady = ready.reduce((a, b) => a + b.pesoActual, 0);
+                readyEl.innerHTML = `
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-xl flex items-center justify-between gap-2 text-xs">
+                        <div class="min-w-0">
+                            <p class="font-bold text-amber-900">🚛 ${ready.length.toLocaleString('es-ES')} listos para despacho</p>
+                            <p class="text-[11px] text-amber-800">${formatMass(kgReady)} en pie</p>
+                        </div>
+                        <button onclick="handleActionButton('liquidate')" class="text-[11px] font-extrabold text-amber-950 bg-amber-200 hover:bg-amber-300 px-2.5 py-1.5 rounded-lg shrink-0 transition">
+                            Liquidar
+                        </button>
+                    </div>`;
+            }
+
+            const sickEl = document.getElementById('sickAlertContainer');
+            if (sick.length === 0) {
+                sickEl.innerHTML = `
+                    <div class="bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-r-xl flex items-center justify-between text-xs">
+                        <div>
+                            <p class="font-bold text-emerald-800">Sanidad Óptima</p>
+                            <p class="text-[11px] text-emerald-700">Sin alertas clínicas activas.</p>
+                        </div>
+                        <button onclick="openModal('salud')" class="text-[11px] font-bold text-emerald-700 underline">Historial</button>
+                    </div>`;
+            } else {
+                sickEl.innerHTML = `
+                    <div class="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-xl flex items-center justify-between gap-2 text-xs">
+                        <div class="min-w-0">
+                            <p class="font-bold text-red-900">⚠️ ${sick.length} caso(s) clínicos</p>
+                            <p class="text-[11px] text-red-700 truncate">${escapeHTML(sick.slice(0, 3).map(s => s.id).join(', '))}</p>
+                        </div>
+                        <button onclick="openModal('salud')" class="text-[11px] font-extrabold text-white bg-red-600 hover:bg-red-700 px-2.5 py-1.5 rounded-lg shrink-0 transition">Atender</button>
+                    </div>`;
+            }
+        }
+
+        function renderCorralesGrid() {
+            const grid = document.getElementById('corralesGrid');
+            const palette = {
+                slate: 'bg-slate-700 hover:bg-slate-800 text-white border-slate-800',
+                teal: 'bg-teal-700 hover:bg-teal-800 text-white border-teal-800',
+                emerald: 'bg-emerald-700 hover:bg-emerald-800 text-white border-emerald-800',
+                amber: 'bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-600',
+                indigo: 'bg-indigo-700 hover:bg-indigo-800 text-white border-indigo-800'
+            };
+
+            grid.innerHTML = state.corrales.map(c => {
+                const assigned = state.listaAnimales.filter(a => a.corral === c.id);
+                const biomass = assigned.reduce((acc, a) => acc + a.pesoActual, 0);
+                const avgW = assigned.length > 0 ? Math.round(biomass / assigned.length) : 0;
+                const occPct = c.capacidad > 0 ? Math.min(100, Math.round((assigned.length / c.capacidad) * 100)) : 0;
+                const cls = palette[c.color] || palette.emerald;
+
+                return `
+                    <button onclick="showCorralDetail('${escapeHTML(c.id)}')" class="${cls} rounded-2xl p-4 border text-left transition shadow-sm flex flex-col justify-between min-h-[135px]">
+                        <div class="flex items-center justify-between w-full gap-2">
+                            <span class="font-extrabold text-xs px-2 py-0.5 rounded-lg bg-black/15 truncate">${escapeHTML(c.nombre)}</span>
+                            <span class="text-[11px] font-black tabular-nums shrink-0">${assigned.length}/${c.capacidad}</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-black/20 rounded-full overflow-hidden my-2">
+                            <div class="h-full bg-white/85 rounded-full" style="width:${occPct}%"></div>
+                        </div>
+                        <div class="flex items-end justify-between w-full">
+                            <div>
+                                <p class="text-base font-black tabular-nums">Prom: ${avgW} kg</p>
+                                <p class="text-[11px] opacity-90 truncate max-w-[160px]">${escapeHTML(c.dieta)}</p>
+                            </div>
+                            <div class="text-right text-[11px] font-bold tabular-nums opacity-95">
+                                <p>${c.hectareas || 0} ha</p>
+                                <p>${formatMass(biomass)}</p>
+                            </div>
+                        </div>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function showCorralDetail(corralId) {
+            const c = state.corrales.find(item => item.id === corralId);
+            if (!c) return;
+            const assigned = state.listaAnimales.filter(a => a.corral === corralId);
+            const biomass = assigned.reduce((acc, a) => acc + a.pesoActual, 0);
+            const directCost = state.gastos
+                .filter(g => g.centroCosto === `Corral ${c.id}` || g.centroCosto === c.nombre)
+                .reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
+
+            document.getElementById('corralTitle').innerText = `${c.nombre} — Etapa: ${c.etapa}`;
+            document.getElementById('corralDetail').innerText =
+                `Superficie: ${c.hectareas} ha | Dieta: ${c.dieta} | Ocupación: ${assigned.length}/${c.capacidad} | Biomasa: ${formatMass(biomass)} | Gastos directos facturados: ${formatUSD(directCost)}`;
+
+            const actionSlot = document.getElementById('corralActionBtnSlot');
+            actionSlot.innerHTML = `
+                <button onclick="openInventoryForCorral('${escapeHTML(c.id)}')" class="bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition">
+                    Ver en Inventario (${assigned.length})
+                </button>
+                ${assigned.length === 0 && state.corrales.length > 1 ? `
+                    <button onclick="deleteCorral('${escapeHTML(c.id)}')" class="bg-red-100 hover:bg-red-200 text-red-700 text-[11px] font-bold px-3 py-1.5 rounded-xl transition">
+                        Eliminar Campo
+                    </button>
+                ` : ''}
+            `;
+
+            const listEl = document.getElementById('corralAnimalsList');
+            if (assigned.length === 0) {
+                listEl.innerHTML = `<span class="text-slate-400 italic">Campo sin animales asignados. Puedes eliminarlo o ingresar un lote.</span>`;
+            } else {
+                const preview = assigned.slice(0, 14);
+                const extra = assigned.length - preview.length;
+                listEl.innerHTML = preview.map(a => `
+                    <span class="bg-white border border-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded-lg text-[11px] tabular-nums">
+                        ${escapeHTML(a.id)} · ${escapeHTML(a.raza)} · ${a.pesoActual} kg
+                    </span>
+                `).join('') + (extra > 0 ? `<span class="bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded-lg text-[11px]">+${extra} más</span>` : '');
+            }
+        }
+
+        function openInventoryForCorral(corralId) {
+            switchTab('inventario');
+            const sel = document.getElementById('invCorralFilter');
+            if (sel) { sel.value = corralId; onInventoryFilterChange(); }
+        }
+
+        function deleteCorral(corralId) {
+            if (!checkPermission('corral')) {
+                alertModal('Solo Admin o Capataz pueden eliminar campos.', 'error');
+                return;
+            }
+            const hasAnimals = state.listaAnimales.some(a => a.corral === corralId);
+            if (hasAnimals) {
+                alertModal('No puedes eliminar un campo que aún tiene animales activos.', 'error');
+                return;
+            }
+            const target = state.corrales.find(c => c.id === corralId);
+            state.corrales = state.corrales.filter(c => c.id !== corralId);
+            logAudit('CORRAL', `Campo eliminado: ${target ? target.nombre : corralId}`);
+            saveState();
+            document.getElementById('corralTitle').innerText = 'Campo eliminado correctamente';
+            document.getElementById('corralDetail').innerText = '';
+            document.getElementById('corralActionBtnSlot').innerHTML = '';
+            document.getElementById('corralAnimalsList').innerHTML = '';
+        }
+
+        // === SIMULADOR DE ESTRÉS DE PRECIOS (WHAT-IF) ===
+        function resetStressTest() {
+            document.getElementById('stressPriceSlider').value = 0;
+            document.getElementById('stressCostSlider').value = 0;
+            document.getElementById('stressMermaSlider').value = 5;
+            updateStressTest();
+        }
+
+        function updateStressTest() {
+            const pDelta = Number(document.getElementById('stressPriceSlider')?.value || 0);
+            const cDelta = Number(document.getElementById('stressCostSlider')?.value || 0);
+            const mermaPct = Number(document.getElementById('stressMermaSlider')?.value || 5);
+
+            document.getElementById('stressPriceVal').innerText = `${pDelta >= 0 ? '+' : ''}${pDelta}%`;
+            document.getElementById('stressCostVal').innerText = `${cDelta >= 0 ? '+' : ''}${cDelta}%`;
+            document.getElementById('stressMermaVal').innerText = `${mermaPct}%`;
+
+            const m = computeMetrics();
+            const stressedPrice = state.liveWeightPriceKg * (1 + pDelta / 100);
+            const netSalableKg = m.totalBiomass * (1 - mermaPct / 100);
+            const stressedExpenses = m.totalExpenses * (1 + cDelta / 100);
+            const stressedCostTotal = m.activePurchaseCost + stressedExpenses;
+            const stressedRevenue = netSalableKg * stressedPrice;
+            const stressedProfit = stressedRevenue - stressedCostTotal;
+            const stressedRoi = stressedCostTotal > 0 ? (stressedProfit / stressedCostTotal) * 100 : 0;
+
+            const breakevenPrice = netSalableKg > 0 ? stressedCostTotal / netSalableKg : 0;
+
+            // Tope de compra por maute de 220 kg proyectado a peso matadero (500 kg) con 15% margen
+            const projectedSalePerHead = state.slaughterWeightGoal * (1 - mermaPct / 100) * stressedPrice;
+            const avgExpensePerHead = m.totalAnimales > 0 ? stressedExpenses / m.totalAnimales : 280;
+            const maxBuyPrice = Math.max(0, (projectedSalePerHead / 1.15) - avgExpensePerHead);
+
+            document.getElementById('stressLivePriceOut').innerText = `$${stressedPrice.toFixed(2)} / kg`;
+            const profEl = document.getElementById('stressNetProfitOut');
+            profEl.innerText = formatUSD(stressedProfit, true);
+            profEl.className = stressedProfit >= 0 ? 'text-lg font-black text-emerald-400 mt-0.5' : 'text-lg font-black text-red-400 mt-0.5';
+            document.getElementById('stressRoiOut').innerText = `ROI: ${stressedRoi.toFixed(1)}%`;
+            document.getElementById('stressBreakevenOut').innerText = `$${breakevenPrice.toFixed(2)} / kg`;
+            document.getElementById('stressMaxBuyOut').innerText = formatUSD(maxBuyPrice);
+
+            const stBadge = document.getElementById('stressStatusBadge');
+            if (stressedProfit >= 0) {
+                stBadge.className = 'text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
+                stBadge.innerText = 'ESCENARIO RENTABLE';
+            } else {
+                stBadge.className = 'text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-400/30';
+                stBadge.innerText = 'ALERTA DE PÉRDIDA';
+            }
+        }
+
+        // === NAVEGACIÓN ===
+        function switchTab(tabName) {
+            activeTab = tabName;
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            const selectedTab = document.getElementById(`tab-${tabName}`);
+            if (selectedTab) selectedTab.classList.remove('hidden');
+
+            ['home', 'inventario', 'contabilidad', 'analitica', 'corrales', 'config'].forEach(key => {
+                const mobileBtn = document.getElementById(`nav-${key}`);
+                const sideBtn = document.getElementById(`side-${key}`);
+                const isActive = key === tabName;
+                if (mobileBtn) {
+                    mobileBtn.className = isActive
+                        ? 'flex-1 flex flex-col items-center text-emerald-700 transition'
+                        : 'flex-1 flex flex-col items-center text-slate-400 hover:text-emerald-700 transition';
+                }
+                if (sideBtn) {
+                    sideBtn.className = isActive
+                        ? 'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-bold bg-emerald-700 text-white transition'
+                        : 'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition';
+                }
+            });
+
+            const m = computeMetrics();
+            if (tabName === 'home') requestAnimationFrame(() => renderHomeChart(m.weeklyTargetKg));
+            if (tabName === 'analitica') requestAnimationFrame(renderAnalyticsCharts);
+        }
+
+        // === GRÁFICOS CHART.JS ===
+        function destroyChart(key) {
+            if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+        }
+
+        function renderHomeChart(weeklyTargetKg) {
+            const ctx = document.getElementById('homeGainChart');
+            if (!ctx) return;
+            destroyChart('homeGain');
+            charts.homeGain = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: WEEK_LABELS,
+                    datasets: [
+                        { label: 'Kilos Ganados / Semana', data: state.gananciaSemanalKg, borderColor: '#15803D', backgroundColor: 'rgba(21,128,61,0.14)', fill: true, tension: 0.35, borderWidth: 3, pointRadius: 4 },
+                        { label: 'Meta Semanal (kg)', data: WEEK_LABELS.map(() => weeklyTargetKg), borderColor: '#D97706', borderDash: [6, 4], borderWidth: 2, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: true, labels: { boxWidth: 10, font: { size: 11 } } } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        function renderAnalyticsCharts() {
+            // 1. Gastos por categoría
+            const costCtx = document.getElementById('biCostCategoryChart');
+            if (costCtx) {
+                destroyChart('biCostCat');
+                const catMap = {};
+                state.gastos.forEach(g => { catMap[g.categoria] = (catMap[g.categoria] || 0) + (Number(g.monto) || 0); });
+                const labels = Object.keys(catMap);
+                charts.biCostCat = new Chart(costCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels.length ? labels : ['Sin gastos'],
+                        datasets: [{
+                            data: labels.length ? Object.values(catMap) : [1],
+                            backgroundColor: ['#15803D', '#4F46E5', '#D97706', '#0EA5E9', '#EF4444', '#64748B'],
+                            borderWidth: 2, borderColor: '#FFFFFF'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+                });
+            }
+
+            // 2. GDP por raza
+            const breedCtx = document.getElementById('biBreedGdpChart');
+            if (breedCtx) {
+                destroyChart('biBreed');
+                const bSum = {}, bCnt = {};
+                state.listaAnimales.forEach(a => {
+                    bSum[a.raza] = (bSum[a.raza] || 0) + calcAnimalGdp(a);
+                    bCnt[a.raza] = (bCnt[a.raza] || 0) + 1;
+                });
+                const labels = Object.keys(bSum);
+                charts.biBreed = new Chart(breedCtx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{ label: 'GDP (kg/d)', data: labels.map(r => Number((bSum[r] / bCnt[r]).toFixed(2))), backgroundColor: '#4F46E5', borderRadius: 6 }]
+                    },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+                });
+            }
+
+            // 3. Biomasa por campo
+            const corCtx = document.getElementById('biCorralChart');
+            if (corCtx) {
+                destroyChart('biCorral');
+                const labels = state.corrales.map(c => c.id);
+                const data = state.corrales.map(c => state.listaAnimales.filter(a => a.corral === c.id).reduce((acc, a) => acc + a.pesoActual, 0));
+                charts.biCorral = new Chart(corCtx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Biomasa (kg)', data, backgroundColor: '#15803D', borderRadius: 6 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                });
+            }
+        }
+
+        // === ROLES Y PERMISOS ===
+        function checkPermission(action) {
+            if (state.role === 'Admin') return true;
+            if (state.role === 'Contadora' && ['addExpense', 'liquidate', 'addAnimal', 'addBatch', 'deleteAnimal'].includes(action)) return true;
+            if (state.role === 'Capataz' && ['addAnimal', 'addBatch', 'addWeighing', 'corral', 'deleteAnimal'].includes(action)) return true;
+            if (state.role === 'Vet' && ['salud', 'deleteAnimal'].includes(action)) return true;
+            return false;
+        }
+
+        function handleActionButton(action, targetId = null) {
+            if (!checkPermission(action)) {
+                alertModal(`El rol "${state.role}" no tiene permiso para esta acción. Cambia a Admin o Contadora según corresponda.`, 'error');
+                return;
+            }
+            openModal(action, targetId);
+        }
+
+        function changeRole(newRole) {
+            if (!VALID_ROLES.includes(newRole)) return;
+            state.role = newRole;
+            saveState();
+            alertModal(`Rol activo cambiado a: ${newRole}`, 'info');
+        }
+
+        // === DELEGACIÓN DE EVENTOS EN TABLAS PRINCIPALES ===
+        function handleMainClick(e) {
+            const btn = e.target.closest('[data-main-action]');
+            if (!btn) return;
+            const action = btn.dataset.mainAction;
+            const id = btn.dataset.id;
+
+            if (action === 'load-more-inv') {
+                invVisibleLimit += PAGE_SIZE;
+                renderInventoryTable();
+            } else if (action === 'weigh-animal') {
+                handleActionButton('addWeighing', id);
+            } else if (action === 'qr-animal') {
+                generateAnimalQR(id);
+            } else if (action === 'delete-animal') {
+                handleActionButton('deleteAnimal', id);
+            } else if (action === 'toggle-expense') {
+                const g = state.gastos.find(x => x.id === id);
+                if (g) {
+                    g.estadoPago = g.estadoPago === 'Pagado' ? 'Por Pagar' : 'Pagado';
+                    logAudit('CONTAB', `Factura ${g.factura || g.id} marcada como ${g.estadoPago}.`);
+                    saveState();
+                }
+            } else if (action === 'delete-expense') {
+                if (!checkPermission('addExpense')) {
+                    alertModal('Solo Admin o Contadora pueden eliminar facturas.', 'error');
+                    return;
+                }
+                const g = state.gastos.find(x => x.id === id);
+                state.gastos = state.gastos.filter(x => x.id !== id);
+                if (g) logAudit('CONTAB', `Gasto eliminado: ${g.proveedor} ($${g.monto}).`);
+                saveState();
+            } else if (action === 'toggle-sale') {
+                const l = state.liquidaciones.find(x => x.id === id);
+                if (l) {
+                    l.estadoCobro = l.estadoCobro === 'Cobrado' ? 'Por Cobrar' : 'Cobrado';
+                    logAudit('VENTA', `Liquidación ${l.id} (${l.comprador}) marcada como ${l.estadoCobro}.`);
+                    saveState();
+                }
+            }
+        }
+
+        // === MODALES ===
+        function showModalHtml(html, onShown = null) {
+            if (modalHideTimeout) { clearTimeout(modalHideTimeout); modalHideTimeout = null; }
+            const overlay = document.getElementById('modalOverlay');
+            const container = document.getElementById('modalContainer');
+            document.getElementById('modalBody').innerHTML = html;
+            overlay.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                overlay.classList.remove('opacity-0');
+                container.classList.remove('translate-y-8');
+                if (typeof onShown === 'function') onShown();
+            });
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('modalOverlay');
+            const container = document.getElementById('modalContainer');
+            overlay.classList.add('opacity-0');
+            container.classList.add('translate-y-8');
+            if (modalHideTimeout) clearTimeout(modalHideTimeout);
+            modalHideTimeout = setTimeout(() => { overlay.classList.add('hidden'); modalHideTimeout = null; }, 220);
+        }
+
+        function alertModal(msg, type = 'success') {
+            const styles = {
+                success: { bg: 'bg-emerald-100 text-emerald-700', icon: 'fa-check', btn: 'bg-emerald-700 hover:bg-emerald-800' },
+                error:   { bg: 'bg-red-100 text-red-600', icon: 'fa-exclamation-circle', btn: 'bg-red-600 hover:bg-red-700' },
+                warning: { bg: 'bg-amber-100 text-amber-700', icon: 'fa-exclamation-triangle', btn: 'bg-amber-600 hover:bg-amber-700' },
+                info:    { bg: 'bg-indigo-100 text-indigo-600', icon: 'fa-info-circle', btn: 'bg-slate-800 hover:bg-slate-900' }
+            };
+            const st = styles[type] || styles.success;
+            showModalHtml(`
+                <div class="text-center space-y-3 p-2">
+                    <div class="w-12 h-12 rounded-full ${st.bg} mx-auto flex items-center justify-center text-xl"><i class="fas ${st.icon}"></i></div>
+                    <h3 class="font-bold text-slate-800 text-sm">${escapeHTML(msg)}</h3>
+                    <button data-action="close-modal" class="w-full ${st.btn} text-white font-bold py-2.5 rounded-xl text-xs transition">Aceptar</button>
+                </div>
+            `);
+        }
+
+        function handleModalClick(e) {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const { action, id } = btn.dataset;
+
+            if (action === 'close-modal') closeModal();
+            else if (action === 'open-liquidate-single') openModal('liquidate', id);
+            else if (action === 'confirm-delete-error') executeAnimalRemoval(id, 'ERROR', 'Eliminado por error de registro');
+            else if (action === 'confirm-clear-all') {
+                state = createEmptyState(state);
+                saveState();
+                alertModal('Base de datos vaciada. Lista para cargar el hato real de la finca.', 'info');
+            }
+            else if (action === 'mark-healthy') markAnimalHealthy(id);
+            else if (action === 'open-add-health') {
+                if (!checkPermission('salud')) alertModal('Solo Admin o Vet pueden registrar eventos sanitarios.', 'error');
+                else openModal('addHealth');
+            }
+            else if (action === 'scan-sim') scannedAnimalResult(id);
+            else if (action === 'download-csv-template') downloadCSVTemplate();
+        }
+
+        function handleModalInput(e) {
+            if (e.target.id === 'weighSearchInput') populateWeighSelect(e.target.value.trim().toLowerCase());
+            else if (e.target.id === 'weighAnimalSelect') updateWeighModalHint(e.target.value);
+            else if (e.target.id === 'liqScopeSelect') updateLiquidationPreview();
+        }
+
+        function openModal(type, targetId = null) {
+            let html = '';
+            let afterRender = null;
+
+            if (type === 'addAnimal') {
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg">Alta Individual de Animal</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <form onsubmit="handleAddAnimal(event)" class="space-y-3 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Arete</label>
+                                <input type="text" id="newId" placeholder="Ej. N-105" maxlength="20" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Campo / Corral</label>
+                                <select id="newCorral" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    ${state.corrales.map(c => `<option value="${escapeHTML(c.id)}">${escapeHTML(c.nombre)}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Categoría</label>
+                                <select id="newTipo" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    <option value="Maute">Maute (Joven)</option>
+                                    <option value="Novillo">Novillo</option>
+                                    <option value="Torete">Torete</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Raza</label>
+                                <input type="text" id="newRaza" placeholder="Ej. Brangus" maxlength="30" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Peso Ing. (kg)</label>
+                                <input type="number" id="newPeso" placeholder="220" min="80" max="900" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Costo ($)</label>
+                                <input type="number" id="newCostoCompra" placeholder="450" min="0" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Dieta (kg/d)</label>
+                                <input type="number" id="newConsumo" value="7.5" step="0.1" min="1" max="25" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Proveedor / Subasta</label>
+                            <input type="text" id="newProveedor" placeholder="Ej. Subasta Ganadera" class="w-full p-2.5 rounded-xl border border-slate-200">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl transition">Guardar en Inventario y Kardex</button>
+                    </form>
+                `;
+            } else if (type === 'addBatch') {
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg"><i class="fas fa-layer-group text-blue-600 mr-1"></i> Carga Masiva por Lote (Alta Escala)</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <form onsubmit="handleAddBatch(event)" class="space-y-3 text-xs">
+                        <p class="text-[11px] text-slate-500">Ingresa desde 2 hasta 1,000 cabezas de una sola compra con numeración automática y registro en Kardex.</p>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Cantidad (cab)</label>
+                                <input type="number" id="batchQty" value="50" min="1" max="1000" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Prefijo Arete</label>
+                                <input type="text" id="batchPrefix" value="L-" maxlength="8" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">N° Inicial</label>
+                                <input type="number" id="batchStartNum" value="${state.listaAnimales.length + 1}" min="1" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Categoría</label>
+                                <select id="batchTipo" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    <option value="Maute">Maute</option>
+                                    <option value="Novillo">Novillo</option>
+                                    <option value="Torete">Torete</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Raza</label>
+                                <input type="text" id="batchRaza" value="Brangus" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Campo Destino</label>
+                                <select id="batchCorral" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    ${state.corrales.map(c => `<option value="${escapeHTML(c.id)}">${escapeHTML(c.nombre)}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Peso Prom (kg)</label>
+                                <input type="number" id="batchWeight" value="235" min="80" max="800" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Costo/Cab ($)</label>
+                                <input type="number" id="batchCost" value="470" min="0" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Dieta (kg/d)</label>
+                                <input type="number" id="batchIntake" value="8.0" step="0.1" min="1" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Proveedor / N° Guía</label>
+                            <input type="text" id="batchProvider" placeholder="Ej. Compra Lote Norte - Guía #442" class="w-full p-2.5 rounded-xl border border-slate-200">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-xl transition">Ingresar Lote Completo</button>
+                    </form>
+                `;
+            } else if (type === 'importCSV') {
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg"><i class="fas fa-file-csv text-indigo-600 mr-1"></i> Importación Masiva CSV / Excel</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <div class="space-y-3 text-xs">
+                        <p class="text-slate-600">Carga cientos o miles de animales desde una hoja de Excel guardada como <strong>CSV (delimitado por comas o punto y coma)</strong>.</p>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 font-mono text-[10px] text-slate-700 overflow-x-auto">
+                            ID,Tipo,Raza,Corral,PesoIngreso,PesoActual,DiasCebo,CostoCompra,ConsumoKg,Estado,Proveedor
+                        </div>
+                        <button data-action="download-csv-template" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold py-2.5 rounded-xl transition">
+                            <i class="fas fa-download mr-1"></i> Descargar Plantilla CSV de Ejemplo
+                        </button>
+                        <label class="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl cursor-pointer transition">
+                            <i class="fas fa-upload mr-1"></i> Seleccionar Archivo .CSV e Importar
+                            <input type="file" accept=".csv,text/csv" onchange="handleImportCSVFile(event)" class="hidden">
+                        </label>
+                    </div>
+                `;
+            } else if (type === 'deleteAnimal') {
+                const a = state.listaAnimales.find(x => x.id === targetId);
+                if (!a) return;
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg">Salida / Eliminación: ${escapeHTML(a.id)}</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <div class="space-y-3 text-xs">
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                            <p class="font-extrabold text-slate-800">${escapeHTML(a.id)} · ${escapeHTML(a.tipo)} ${escapeHTML(a.raza)}</p>
+                            <p class="text-slate-500">Campo ${escapeHTML(a.corral)} · Peso actual: <strong>${a.pesoActual} kg</strong> · Compra: ${formatUSD(a.costoCompra)}</p>
+                        </div>
+
+                        <button data-action="open-liquidate-single" data-id="${escapeHTML(a.id)}" class="w-full bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 font-bold p-3 rounded-2xl flex items-center justify-between transition">
+                            <span><i class="fas fa-truck mr-2 text-amber-600"></i>1. Salió para Venta / Matadero (Liquidar)</span>
+                            <i class="fas fa-chevron-right text-[10px]"></i>
+                        </button>
+
+                        <form onsubmit="handleAnimalBaja(event, '${escapeHTML(a.id)}')" class="bg-red-50/70 border border-red-200 p-3 rounded-2xl space-y-2">
+                            <p class="font-bold text-red-900"><i class="fas fa-clipboard-check mr-1"></i>2. Registrar Baja Contable (Se fue / Murió / Descarte)</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <select id="bajaMotivo" class="p-2 rounded-xl border border-red-200 bg-white font-semibold">
+                                    <option value="Mortalidad">Mortalidad</option>
+                                    <option value="Salida / Traslado Externo">Salida / Traslado Externo</option>
+                                    <option value="Descarte">Descarte</option>
+                                    <option value="Extravío / Robo">Extravío / Robo</option>
+                                </select>
+                                <input type="text" id="bajaNota" placeholder="Nota opcional..." class="p-2 rounded-xl border border-red-200 bg-white">
+                            </div>
+                            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl transition">Dar de Baja y Descontar del Kardex</button>
+                        </form>
+
+                        <div class="pt-1 border-t border-slate-100">
+                            <button data-action="confirm-delete-error" data-id="${escapeHTML(a.id)}" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition">
+                                <i class="fas fa-trash-alt mr-1 text-red-500"></i> 3. Eliminar Definitivamente (Error de carga)
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'addExpense') {
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg"><i class="fas fa-file-invoice-dollar text-indigo-600 mr-1"></i> Registrar Factura / Gasto Real</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <form onsubmit="handleAddExpense(event)" class="space-y-3 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Fecha</label>
+                                <input type="date" id="expDate" value="${todayISO()}" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">N° Factura / Recibo</label>
+                                <input type="text" id="expInvoice" placeholder="Ej. FAC-00512" class="w-full p-2.5 rounded-xl border border-slate-200">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Categoría</label>
+                                <select id="expCategory" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    <option value="Alimento">Alimento / Suplemento</option>
+                                    <option value="Sanidad">Sanidad / Medicamentos</option>
+                                    <option value="Nómina">Nómina / Mano de Obra</option>
+                                    <option value="Flete">Flete / Transporte</option>
+                                    <option value="Combustible">Gasoil / Energía</option>
+                                    <option value="Mantenimiento">Mantenimiento / Cercas</option>
+                                    <option value="Otros">Otros Gastos</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Centro de Costo</label>
+                                <select id="expCenter" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    <option value="General">General (Todo el Hato)</option>
+                                    ${state.corrales.map(c => `<option value="Corral ${escapeHTML(c.id)}">${escapeHTML(c.nombre)}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Proveedor</label>
+                            <input type="text" id="expProvider" placeholder="Ej. Agropecuaria del Norte" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Concepto / Detalle</label>
+                            <input type="text" id="expDesc" placeholder="Ej. 5 toneladas de maíz molido" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Monto Total (USD)</label>
+                                <input type="number" id="expAmount" step="0.01" min="0.01" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Estado de Pago</label>
+                                <select id="expStatus" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    <option value="Pagado">Pagado (Sale de Caja)</option>
+                                    <option value="Por Pagar">Por Pagar (Crédito / CxP)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition">Registrar en Contabilidad</button>
+                    </form>
+                `;
+            } else if (type === 'liquidate') {
+                if (state.listaAnimales.length === 0) {
+                    alertModal('No hay animales activos en inventario para liquidar.', 'warning');
+                    return;
+                }
+                const readyCount = state.listaAnimales.filter(isReadyForSlaughter).length;
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg"><i class="fas fa-truck text-amber-600 mr-1"></i> Liquidación de Matadero</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <form onsubmit="handleLiquidate(event)" class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Lote o Animal a Despachar</label>
+                            <select id="liqScopeSelect" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                ${targetId ? `<option value="SINGLE:${escapeHTML(targetId)}" selected>Solo Animal ${escapeHTML(targetId)}</option>` : ''}
+                                ${readyCount > 0 ? `<option value="READY" ${!targetId ? 'selected' : ''}>Todos los Listos p/ Matadero (${readyCount} cab)</option>` : ''}
+                                ${state.corrales.map(c => {
+                                    const cnt = state.listaAnimales.filter(a => a.corral === c.id).length;
+                                    return cnt > 0 ? `<option value="CORRAL:${escapeHTML(c.id)}">Todo ${escapeHTML(c.nombre)} (${cnt} cab)</option>` : '';
+                                }).join('')}
+                                ${state.listaAnimales.slice(0, 30).map(a => `<option value="SINGLE:${escapeHTML(a.id)}">Individual: ${escapeHTML(a.id)} (${a.pesoActual} kg)</option>`).join('')}
+                            </select>
+                            <p id="liqPreviewInfo" class="text-[11px] text-indigo-700 font-semibold mt-1"></p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Comprador / Matadero</label>
+                                <input type="text" id="liqBuyer" value="Frigorífico Regional" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Precio Pactado ($/kg)</label>
+                                <input type="number" id="liqPriceKg" value="${state.liveWeightPriceKg}" step="0.01" min="0.01" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Peso Romana Matadero (kg)</label>
+                                <input type="number" id="liqRomanaKg" min="1" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Deducciones / Guías ($)</label>
+                                <input type="number" id="liqDeductions" value="0" min="0" step="1" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Condición de Cobro</label>
+                            <select id="liqPaymentStatus" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                <option value="Cobrado">Cobrado de Contado (Entra a Caja)</option>
+                                <option value="Por Cobrar">A Crédito (Cuenta por Cobrar / CxC)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition">Cerrar Liquidación y Descargar Kardex</button>
+                    </form>
+                `;
+                afterRender = updateLiquidationPreview;
+            } else if (type === 'addCorral') {
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg">Nuevo Campo / Corral Dinámico</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <form onsubmit="handleAddCorral(event)" class="space-y-3 text-xs">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Código</label>
+                                <input type="text" id="corId" placeholder="Ej. E" maxlength="6" required class="w-full p-2.5 rounded-xl border border-slate-200 uppercase">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block font-bold text-slate-700 mb-1">Nombre del Campo</label>
+                                <input type="text" id="corName" placeholder="Ej. Potrero La Vega" maxlength="40" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Etapa</label>
+                                <select id="corStage" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    <option value="Adaptación">Recepción / Adaptación</option>
+                                    <option value="Levante">Levante</option>
+                                    <option value="Engorde Intensivo">Engorde Intensivo</option>
+                                    <option value="Finalización">Finalización / Matadero</option>
+                                    <option value="Cuarentena">Cuarentena / Hospital</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Color Visual</label>
+                                <select id="corColor" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    <option value="emerald">Verde Engorde</option>
+                                    <option value="teal">Verde Azulado</option>
+                                    <option value="amber">Ámbar Finalización</option>
+                                    <option value="indigo">Índigo Especial</option>
+                                    <option value="slate">Gris Recepción</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Hectáreas (ha)</label>
+                                <input type="number" id="corHa" value="15" min="1" step="0.5" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Capacidad Máx. (cab)</label>
+                                <input type="number" id="corCap" value="400" min="1" max="5000" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Dieta / Pastura Principal</label>
+                            <input type="text" id="corDiet" placeholder="Ej. Pasto Brachiaria + Concentrado" required class="w-full p-2.5 rounded-xl border border-slate-200">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl transition">Crear Campo y Centro de Costo</button>
+                    </form>
+                `;
+            } else if (type === 'addWeighing') {
+                if (state.listaAnimales.length === 0) {
+                    alertModal('Primero ingresa animales al inventario para registrar pesajes.', 'warning');
+                    return;
+                }
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg">⚖️ Registrar Control de Pesaje</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <form onsubmit="handleAddWeighing(event)" class="space-y-3 text-xs">
+                        <div class="space-y-1.5">
+                            <label class="block font-bold text-slate-700">Buscar Animal</label>
+                            <input type="text" id="weighSearchInput" placeholder="Filtrar arete o raza..." class="w-full p-2 rounded-xl border border-slate-200">
+                            <select id="weighAnimalSelect" class="w-full p-2.5 rounded-xl border border-slate-200 bg-white"></select>
+                            <p id="weighCurrentHint" class="text-[11px] text-indigo-700 font-semibold"></p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Peso en Báscula (kg)</label>
+                                <input type="number" id="weighNewKg" min="80" max="1200" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Días transcurridos</label>
+                                <input type="number" id="weighDaysElapsed" value="14" min="1" max="120" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Mover de Campo (Opcional)</label>
+                            <select id="weighNewCorral" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                <option value="mantener">Mantener en campo actual</option>
+                                ${state.corrales.map(c => `<option value="${escapeHTML(c.id)}">Mover a ${escapeHTML(c.nombre)}</option>`).join('')}
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition">Guardar Pesaje</button>
+                    </form>
+                `;
+                afterRender = () => populateWeighSelect('', targetId);
+            } else if (type === 'salud') {
+                const sick = state.listaAnimales.filter(isAnimalSick);
+                const canEdit = checkPermission('salud');
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg">🩺 Sanidad (${sick.length} casos activos)</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <div class="space-y-3 text-xs">
+                        <div class="space-y-2 max-h-44 overflow-y-auto no-scrollbar">
+                            ${sick.length === 0 ? '<p class="bg-emerald-50 text-emerald-800 p-3 rounded-xl font-semibold">Sin animales enfermos.</p>' : sick.slice(0, 15).map(a => `
+                                <div class="bg-red-50 p-2.5 rounded-xl border border-red-100 flex justify-between items-center">
+                                    <div>
+                                        <p class="font-bold text-red-900">${escapeHTML(a.id)} (Campo ${escapeHTML(a.corral)})</p>
+                                        <p class="text-[11px] text-red-700">${escapeHTML(a.estado)}</p>
+                                    </div>
+                                    ${canEdit ? `<button data-action="mark-healthy" data-id="${escapeHTML(a.id)}" class="bg-emerald-600 text-white font-bold px-2.5 py-1 rounded-lg text-[10px]">Dar Alta</button>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-600">Historial Clínico</span>
+                            <button data-action="open-add-health" class="bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg text-[11px]">+ Registrar</button>
+                        </div>
+                        <div class="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
+                            ${state.historialSanitario.map(h => `
+                                <div class="bg-slate-50 p-2 rounded-xl flex justify-between border border-slate-100">
+                                    <span><strong>${escapeHTML(h.evento)}</strong> (${escapeHTML(h.animal)})</span>
+                                    <span class="text-slate-500">${escapeHTML(h.fecha)} · $${h.costo || 0}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'addHealth') {
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg">Registrar Evento Sanitario</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <form onsubmit="handleAddHealth(event)" class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Animal / Campo</label>
+                            <select id="healthAnimal" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                <option value="General">Todo el Hato</option>
+                                ${state.corrales.map(c => `<option value="Corral ${escapeHTML(c.id)}">${escapeHTML(c.nombre)}</option>`).join('')}
+                                ${state.listaAnimales.slice(0, 40).map(a => `<option value="${escapeHTML(a.id)}">${escapeHTML(a.id)} (${escapeHTML(a.estado)})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Tratamiento / Vacuna</label>
+                            <input type="text" id="healthEvent" required placeholder="Ej. Antibiótico / Vitamina" class="w-full p-2.5 rounded-xl border border-slate-200">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Estado Clínico</label>
+                                <select id="healthStatus" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                    <option value="sin_cambio">Sin cambio</option>
+                                    <option value="Sano">Sano</option>
+                                    <option value="Enfermo (En tratamiento)">En tratamiento</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Costo (USD) — va a Gastos</label>
+                                <input type="number" id="healthCost" min="0" step="0.5" value="0" required class="w-full p-2.5 rounded-xl border border-slate-200 tabular-nums">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-700 text-white font-bold py-3 rounded-xl">Guardar y Contabilizar</button>
+                    </form>
+                `;
+            } else if (type === 'scanQR') {
+                const samples = state.listaAnimales.slice(0, 5).map(a => `
+                    <button data-action="scan-sim" data-id="${escapeHTML(a.id)}" class="bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-xl text-xs">${escapeHTML(a.id)}</button>
+                `).join('');
+                html = `
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-lg"><i class="fas fa-qrcode text-indigo-600 mr-1"></i> Consulta Rápida QR</h3>
+                        <button data-action="close-modal" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <div class="text-center space-y-3 py-2">
+                        <div class="w-40 h-40 bg-slate-900 rounded-2xl mx-auto flex flex-col items-center justify-center relative overflow-hidden border-2 border-amber-500">
+                            <i class="fas fa-camera text-slate-500 text-3xl animate-pulse"></i>
+                            <div class="absolute inset-x-0 h-0.5 bg-amber-400 animate-bounce top-1/2"></div>
+                            <span class="text-[10px] text-slate-400 mt-2">Lector de Arete</span>
+                        </div>
+                        <div class="flex flex-wrap justify-center gap-2">${samples || '<span class="text-xs text-slate-400">Sin animales activos</span>'}</div>
+                    </div>
+                `;
+            } else if (type === 'confirmClearAll') {
+                html = `
+                    <div class="text-center space-y-3 p-2">
+                        <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 mx-auto flex items-center justify-center text-xl"><i class="fas fa-exclamation-triangle"></i></div>
+                        <h3 class="font-black text-slate-800 text-base">¿Vaciar toda la base de datos?</h3>
+                        <p class="text-xs text-slate-500">Se borrarán todos los animales, facturas y liquidaciones actuales para iniciar en cero. Te recomendamos descargar un respaldo JSON antes.</p>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button data-action="close-modal" class="bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+                            <button data-action="confirm-clear-all" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs">Sí, Empezar en 0</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            showModalHtml(html, afterRender);
+        }
+
+        // === AUXILIARES DE MODALES ===
+        function populateWeighSelect(query = '', preselectId = null) {
+            const sel = document.getElementById('weighAnimalSelect');
+            if (!sel) return;
+            const matches = state.listaAnimales.filter(a => !query || a.id.toLowerCase().includes(query) || a.raza.toLowerCase().includes(query)).slice(0, 60);
+            if (preselectId && !matches.some(a => a.id === preselectId)) {
+                const exact = state.listaAnimales.find(a => a.id === preselectId);
+                if (exact) matches.unshift(exact);
+            }
+            if (matches.length === 0) {
+                sel.innerHTML = '<option value="">Sin coincidencias</option>';
+                return;
+            }
+            const pick = preselectId || matches[0].id;
+            sel.innerHTML = matches.map(a => `<option value="${escapeHTML(a.id)}" ${a.id === pick ? 'selected' : ''}>${escapeHTML(a.id)} · ${escapeHTML(a.raza)} (${a.pesoActual} kg)</option>`).join('');
+            updateWeighModalHint(pick);
+        }
+
+        function updateWeighModalHint(id) {
+            const a = state.listaAnimales.find(x => x.id === id);
+            const hint = document.getElementById('weighCurrentHint');
+            if (a && hint) hint.innerText = `Peso actual: ${a.pesoActual} kg · Días: ${a.diasEnCebo} · GDP: ${calcAnimalGdp(a).toFixed(2)} kg/d`;
+        }
+
+        function resolveLiquidationAnimals(scopeVal) {
+            if (!scopeVal) return [];
+            if (scopeVal === 'READY') return state.listaAnimales.filter(isReadyForSlaughter);
+            if (scopeVal.startsWith('CORRAL:')) {
+                const cid = scopeVal.slice(7);
+                return state.listaAnimales.filter(a => a.corral === cid);
+            }
+            if (scopeVal.startsWith('SINGLE:')) {
+                const aid = scopeVal.slice(7);
+                const found = state.listaAnimales.find(a => a.id === aid);
+                return found ? [found] : [];
+            }
+            return [];
+        }
+
+        function updateLiquidationPreview() {
+            const sel = document.getElementById('liqScopeSelect');
+            const info = document.getElementById('liqPreviewInfo');
+            const romanaInput = document.getElementById('liqRomanaKg');
+            if (!sel || !info) return;
+            const list = resolveLiquidationAnimals(sel.value);
+            const farmKg = list.reduce((acc, a) => acc + a.pesoActual, 0);
+            info.innerText = `Seleccionados: ${list.length} cabeza(s) · Peso salida finca: ${farmKg.toLocaleString('es-ES')} kg`;
+            if (romanaInput) romanaInput.value = Math.round(farmKg * 0.95); // sugiere 5% merma editable
+        }
+
+        // === HANDLERS DE DATOS ===
+        function handleAddAnimal(e) {
+            e.preventDefault();
+            const id = document.getElementById('newId').value.trim().toUpperCase();
+            const tipo = document.getElementById('newTipo').value;
+            const raza = document.getElementById('newRaza').value.trim();
+            const corral = document.getElementById('newCorral').value;
+            const peso = Number(document.getElementById('newPeso').value);
+            const costoCompra = Number(document.getElementById('newCostoCompra').value);
+            const consumoDiarioKg = Number(document.getElementById('newConsumo').value);
+            const proveedor = document.getElementById('newProveedor').value.trim() || 'Compra directa';
+
+            if (!id || !raza || peso <= 0) return;
+            if (state.listaAnimales.some(a => a.id.toUpperCase() === id)) {
+                alertModal(`El arete "${id}" ya existe en el inventario.`, 'error');
+                return;
+            }
+            state.listaAnimales.unshift({
+                id, tipo, raza, corral, pesoIngreso: peso, pesoActual: peso, diasEnCebo: 1,
+                costoCompra, consumoDiarioKg, estado: 'Sano', proveedor
+            });
+            state.kardex.compras += 1;
+            logAudit('COMPRA', `Alta individual ${id} (${tipo} ${raza}, ${peso} kg, ${formatUSD(costoCompra)}) en Campo ${corral}.`);
+            saveState();
+            alertModal(`Animal ${id} ingresado y sumado al Kardex.`, 'success');
+        }
+
+        function handleAddBatch(e) {
+            e.preventDefault();
+            const qty = Math.min(1000, Math.max(1, Math.round(Number(document.getElementById('batchQty').value))));
+            const prefix = document.getElementById('batchPrefix').value.trim().toUpperCase();
+            let startNum = Math.max(1, Math.round(Number(document.getElementById('batchStartNum').value)));
+            const tipo = document.getElementById('batchTipo').value;
+            const raza = document.getElementById('batchRaza').value.trim();
+            const corral = document.getElementById('batchCorral').value;
+            const weight = Number(document.getElementById('batchWeight').value);
+            const cost = Number(document.getElementById('batchCost').value);
+            const intake = Number(document.getElementById('batchIntake').value);
+            const proveedor = document.getElementById('batchProvider').value.trim() || 'Compra Lote';
+
+            const existingIds = new Set(state.listaAnimales.map(a => a.id.toUpperCase()));
+            const created = [];
+            let num = startNum;
+
+            while (created.length < qty) {
+                const candidate = `${prefix}${String(num).padStart(4, '0')}`;
+                num++;
+                if (existingIds.has(candidate)) continue;
+                existingIds.add(candidate);
+                created.push({
+                    id: candidate, tipo, raza, corral,
+                    pesoIngreso: weight, pesoActual: weight, diasEnCebo: 1,
+                    costoCompra: cost, consumoDiarioKg: intake, estado: 'Sano', proveedor
+                });
+            }
+
+            state.listaAnimales = [...created.reverse(), ...state.listaAnimales];
+            state.kardex.compras += created.length;
+            logAudit('LOTE', `Ingreso masivo de ${created.length} ${tipo}(s) ${raza} en Campo ${corral} (${formatUSD(created.length * cost)}).`);
+            saveState();
+            alertModal(`Lote de ${created.length.toLocaleString('es-ES')} cabezas cargado exitosamente en Campo ${corral}.`, 'success');
+        }
+
+        function handleAnimalBaja(e, animalId) {
+            e.preventDefault();
+            const motivo = document.getElementById('bajaMotivo').value;
+            const nota = document.getElementById('bajaNota').value.trim();
+            executeAnimalRemoval(animalId, 'BAJA', `${motivo}${nota ? ' - ' + nota : ''}`);
+        }
+
+        function executeAnimalRemoval(animalId, mode, reason) {
+            const idx = state.listaAnimales.findIndex(a => a.id === animalId);
+            if (idx === -1) return;
+            const removed = state.listaAnimales[idx];
+            state.listaAnimales.splice(idx, 1);
+
+            if (mode === 'BAJA') {
+                state.kardex.bajas += 1;
+                logAudit('BAJA', `Baja de ${removed.id} (${removed.tipo}, ${removed.pesoActual} kg): ${reason}.`);
+                saveState();
+                alertModal(`Baja registrada para ${removed.id}. El Kardex se actualizó automáticamente.`, 'info');
+            } else {
+                state.kardex.ajustes -= 1;
+                logAudit('ELIMINADO', `Eliminación por error de carga: ${removed.id} (${removed.raza}, ${removed.pesoActual} kg).`);
+                saveState();
+                alertModal(`Animal ${removed.id} eliminado definitivamente y ajustado en auditoría.`, 'info');
+            }
+        }
+
+        function handleAddExpense(e) {
+            e.preventDefault();
+            const fecha = document.getElementById('expDate').value;
+            const factura = document.getElementById('expInvoice').value.trim();
+            const categoria = document.getElementById('expCategory').value;
+            const centroCosto = document.getElementById('expCenter').value;
+            const proveedor = document.getElementById('expProvider').value.trim();
+            const descripcion = document.getElementById('expDesc').value.trim();
+            const monto = Number(document.getElementById('expAmount').value);
+            const estadoPago = document.getElementById('expStatus').value;
+
+            if (!proveedor || !descripcion || monto <= 0) return;
+            const id = `G-${Date.now().toString().slice(-5)}`;
+            state.gastos.unshift({ id, fecha, factura, categoria, centroCosto, proveedor, descripcion, monto, estadoPago });
+            logAudit('GASTO', `Factura ${factura || id} (${categoria} - ${centroCosto}): ${formatUSD(monto)} [${estadoPago}].`);
+            saveState();
+            alertModal(`Gasto de ${formatUSD(monto)} registrado en ${centroCosto}.`, 'success');
+        }
+
+        function handleLiquidate(e) {
+            e.preventDefault();
+            const scope = document.getElementById('liqScopeSelect').value;
+            const buyer = document.getElementById('liqBuyer').value.trim();
+            const priceKg = Number(document.getElementById('liqPriceKg').value);
+            const romanaKg = Number(document.getElementById('liqRomanaKg').value);
+            const deductions = Math.max(0, Number(document.getElementById('liqDeductions').value) || 0);
+            const estadoCobro = document.getElementById('liqPaymentStatus').value;
+
+            const animalsToSell = resolveLiquidationAnimals(scope);
+            if (animalsToSell.length === 0 || romanaKg <= 0 || priceKg <= 0) {
+                alertModal('Revisa el lote seleccionado y el peso de romana.', 'error');
+                return;
+            }
+
+            const pesoFinca = animalsToSell.reduce((acc, a) => acc + a.pesoActual, 0);
+            const costoCompraLote = animalsToSell.reduce((acc, a) => acc + (Number(a.costoCompra) || 0), 0);
+            const mermaKg = Math.max(0, pesoFinca - romanaKg);
+            const mermaPct = pesoFinca > 0 ? (mermaKg / pesoFinca) * 100 : 0;
+            const ingresoBruto = romanaKg * priceKg;
+            const ingresoNeto = Math.max(0, ingresoBruto - deductions);
+
+            const idsSet = new Set(animalsToSell.map(a => a.id));
+            state.listaAnimales = state.listaAnimales.filter(a => !idsSet.has(a.id));
+            state.kardex.ventas += animalsToSell.length;
+
+            const liqId = `V-${Date.now().toString().slice(-5)}`;
+            const aretesResumen = animalsToSell.length <= 3
+                ? animalsToSell.map(a => a.id).join(', ')
+                : `${animalsToSell[0].id} ... +${animalsToSell.length - 1} cab`;
+
+            state.liquidaciones.unshift({
+                id: liqId, fecha: todayISO(), comprador: buyer, cantidad: animalsToSell.length,
+                aretesResumen, pesoFinca, pesoRomana: romanaKg, mermaKg, mermaPct,
+                precioKg: priceKg, deducciones: deductions, ingresoNeto, costoCompraLote, estadoCobro
+            });
+
+            logAudit('VENTA', `Liquidación ${liqId} (${animalsToSell.length} cab a ${buyer}): ${romanaKg} kg romana, merma ${mermaPct.toFixed(1)}%, neto ${formatUSD(ingresoNeto)} [${estadoCobro}].`);
+            saveState();
+            alertModal(`Liquidación cerrada: ${animalsToSell.length} cab vendidas por ${formatUSD(ingresoNeto)} (Merma real: ${mermaPct.toFixed(1)}%).`, 'success');
+        }
+
+        function handleAddCorral(e) {
+            e.preventDefault();
+            const id = document.getElementById('corId').value.trim().toUpperCase();
+            const nombre = document.getElementById('corName').value.trim();
+            const etapa = document.getElementById('corStage').value;
+            const color = document.getElementById('corColor').value;
+            const hectareas = Number(document.getElementById('corHa').value);
+            const capacidad = Number(document.getElementById('corCap').value);
+            const dieta = document.getElementById('corDiet').value.trim();
+
+            if (!id || !nombre) return;
+            if (state.corrales.some(c => c.id.toUpperCase() === id)) {
+                alertModal(`Ya existe un campo con el código "${id}".`, 'error');
+                return;
+            }
+            state.corrales.push({ id, nombre, etapa, color, hectareas, capacidad, dieta });
+            logAudit('CORRAL', `Nuevo campo creado: ${nombre} (${id}, ${hectareas} ha, cap. ${capacidad}).`);
+            saveState();
+            alertModal(`Campo "${nombre}" creado y disponible como centro de costo.`, 'success');
+        }
+
+        function handleAddWeighing(e) {
+            e.preventDefault();
+            const animalId = document.getElementById('weighAnimalSelect').value;
+            const newKg = Number(document.getElementById('weighNewKg').value);
+            const daysElapsed = Number(document.getElementById('weighDaysElapsed').value);
+            const newCorral = document.getElementById('weighNewCorral').value;
+            const animal = state.listaAnimales.find(a => a.id === animalId);
+            if (!animal || newKg <= 0 || daysElapsed <= 0) return;
+
+            const prevKg = animal.pesoActual;
+            const ganancia = newKg - prevKg;
+            animal.pesoActual = newKg;
+            animal.diasEnCebo += daysElapsed;
+            if (newCorral !== 'mantener') animal.corral = newCorral;
+
+            state.historialPesajes.unshift({ fecha: todayISO(), animal: animal.id, pesoAnterior: prevKg, pesoNuevo: newKg, ganancia, diasLapso: daysElapsed });
+            if (ganancia > 0) state.gananciaSemanalKg[6] += Math.round(ganancia);
+            logAudit('PESAJE', `${animal.id}: ${prevKg} kg → ${newKg} kg (${ganancia >= 0 ? '+' : ''}${ganancia} kg).`);
+            saveState();
+            alertModal(`Pesaje registrado para ${animal.id}: ${newKg} kg.`, 'success');
+        }
+
+        function handleAddHealth(e) {
+            e.preventDefault();
+            const target = document.getElementById('healthAnimal').value;
+            const evento = document.getElementById('healthEvent').value.trim();
+            const status = document.getElementById('healthStatus').value;
+            const costo = Math.max(0, Number(document.getElementById('healthCost').value) || 0);
+            if (!evento) return;
+
+            state.historialSanitario.unshift({ fecha: todayISO(), evento, animal: target, estado: status === 'Enfermo (En tratamiento)' ? 'En proceso' : 'Registrado', costo });
+            if (!target.startsWith('General') && !target.startsWith('Corral') && status !== 'sin_cambio') {
+                const a = state.listaAnimales.find(x => x.id === target);
+                if (a) a.estado = status;
+            }
+            if (costo > 0) {
+                state.gastos.unshift({
+                    id: `G-${Date.now().toString().slice(-5)}`, fecha: todayISO(), factura: 'SAN-AUTO',
+                    categoria: 'Sanidad', centroCosto: target.startsWith('Corral') ? target : 'General',
+                    proveedor: 'Registro Veterinario', descripcion: `${evento} (${target})`, monto: costo, estadoPago: 'Pagado'
+                });
+            }
+            logAudit('SANIDAD', `${evento} en ${target}${costo > 0 ? ' ($' + costo + ' a Gastos)' : ''}.`);
+            saveState();
+            alertModal('Evento sanitario guardado y sincronizado con contabilidad.', 'success');
+        }
+
+        function markAnimalHealthy(id) {
+            const a = state.listaAnimales.find(x => x.id === id);
+            if (!a) return;
+            a.estado = 'Sano';
+            state.historialSanitario.unshift({ fecha: todayISO(), evento: 'Alta veterinaria', animal: id, estado: 'Completado', costo: 0 });
+            logAudit('SANIDAD', `Alta médica para ${id}.`);
+            saveState();
+            alertModal(`Animal ${id} marcado como sano.`, 'success');
+        }
+
+        function handleSaveConfig(e) {
+            e.preventDefault();
+            state.farmName = document.getElementById('cfgFarmName').value.trim();
+            state.ownerName = document.getElementById('cfgOwnerName').value.trim();
+            state.liveWeightPriceKg = Number(document.getElementById('cfgLivePrice').value);
+            state.slaughterWeightGoal = Number(document.getElementById('cfgSlaughterWeight').value);
+            state.targetGdp = Number(document.getElementById('cfgTargetGdp').value);
+            state.carcassYieldPct = Number(document.getElementById('cfgCarcassYield').value);
+            state.localCurrency = document.getElementById('cfgLocalCurrency').value.trim() || 'Bs';
+            state.exchangeRate = Number(document.getElementById('cfgExchangeRate').value) || 1;
+            logAudit('CONFIG', `Parámetros actualizados (Precio: $${state.liveWeightPriceKg}/kg, Tasa: ${state.exchangeRate} ${state.localCurrency}).`);
+            saveState();
+            alertModal('Parámetros guardados y modelos contables/BI recalculados.', 'success');
+        }
+
+        // === IMPORTACIÓN CSV MASIVA ===
+        function downloadCSVTemplate() {
+            const sample = [
+                ['ID', 'Tipo', 'Raza', 'Corral', 'PesoIngreso', 'PesoActual', 'DiasCebo', 'CostoCompra', 'ConsumoKg', 'Estado', 'Proveedor'],
+                ['L-1001', 'Maute', 'Brangus', state.corrales[0]?.id || 'A', 220, 245, 25, 450, 7.5, 'Sano', 'Subasta Central'],
+                ['L-1002', 'Novillo', 'Brahman', state.corrales[0]?.id || 'A', 260, 495, 180, 520, 9.5, 'Sano', 'Subasta Central']
+            ];
+            const csv = sample.map(r => r.map(escapeCSVCell).join(',')).join('\r\n');
+            triggerDownload('\uFEFF' + csv, 'Plantilla_Carga_Masiva_Agrocampo.csv', 'text/csv;charset=utf-8;');
+        }
+
+        function handleImportCSVFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = String(e.target.result || '').replace(/^\uFEFF/, '');
+                const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+                if (lines.length < 2) {
+                    alertModal('El archivo CSV no contiene filas de datos.', 'error');
+                    return;
+                }
+                const delimiter = lines[0].includes(';') && !lines[0].includes(',') ? ';' : ',';
+                const existing = new Set(state.listaAnimales.map(a => a.id.toUpperCase()));
+                const defaultCorral = state.corrales[0]?.id || 'A';
+                let added = 0, skipped = 0;
+                const batch = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(delimiter).map(c => c.replace(/^"|"$/g, '').trim());
+                    const id = (cols[0] || '').toUpperCase();
+                    if (!id || existing.has(id)) { skipped++; continue; }
+
+                    const tipo = ['Maute', 'Novillo', 'Torete'].includes(cols[1]) ? cols[1] : 'Novillo';
+                    const raza = cols[2] || 'Mestizo';
+                    const corralCode = (cols[3] || defaultCorral).toUpperCase();
+                    if (!state.corrales.some(c => c.id === corralCode)) {
+                        state.corrales.push({ id: corralCode, nombre: `Campo ${corralCode}`, etapa: 'Engorde Intensivo', dieta: 'Importado CSV', hectareas: 10, capacidad: 400, color: 'indigo' });
+                    }
+                    const pesoIngreso = Math.max(50, Number(cols[4]) || 220);
+                    const pesoActual = Math.max(50, Number(cols[5]) || pesoIngreso);
+                    const diasEnCebo = Math.max(1, Number(cols[6]) || 1);
+                    const costoCompra = Math.max(0, Number(cols[7]) || 0);
+                    const consumoDiarioKg = Math.max(1, Number(cols[8]) || 8.0);
+                    const estado = cols[9] || 'Sano';
+                    const proveedor = cols[10] || 'Importación CSV';
+
+                    existing.add(id);
+                    batch.push({ id, tipo, raza, corral: corralCode, pesoIngreso, pesoActual, diasEnCebo, costoCompra, consumoDiarioKg, estado, proveedor });
+                    added++;
+                }
+
+                if (added > 0) {
+                    state.listaAnimales = [...batch, ...state.listaAnimales];
+                    state.kardex.compras += added;
+                    logAudit('IMPORT_CSV', `Importación masiva: ${added} animales agregados (${skipped} duplicados/omitidos).`);
+                    saveState();
+                }
+                alertModal(`Importación finalizada: ${added.toLocaleString('es-ES')} animales agregados${skipped ? `, ${skipped} omitidos por duplicado` : ''}.`, added > 0 ? 'success' : 'warning');
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // === EXPORTACIONES CONTABLES ===
+        function downloadCSV(type) {
+            const rows = [];
+            if (type === 'gastos') {
+                rows.push(['ID', 'Fecha', 'Factura', 'Categoria', 'CentroCosto', 'Proveedor', 'Descripcion', 'Monto_USD', `Monto_${state.localCurrency}`, 'EstadoPago']);
+                state.gastos.forEach(g => rows.push([g.id, g.fecha, g.factura, g.categoria, g.centroCosto, g.proveedor, g.descripcion, g.monto, (g.monto * state.exchangeRate).toFixed(2), g.estadoPago]));
+            } else if (type === 'liquidaciones') {
+                rows.push(['ID', 'Fecha', 'Comprador', 'Cabezas', 'PesoFinca_kg', 'PesoRomana_kg', 'Merma_kg', 'Merma_%', 'Precio_kg', 'Deducciones_USD', 'IngresoNeto_USD', 'CostoCompra_USD', 'EstadoCobro']);
+                state.liquidaciones.forEach(l => rows.push([l.id, l.fecha, l.comprador, l.cantidad, l.pesoFinca, l.pesoRomana, l.mermaKg, l.mermaPct.toFixed(2), l.precioKg, l.deducciones, l.ingresoNeto.toFixed(2), l.costoCompraLote.toFixed(2), l.estadoCobro]));
+            } else if (type === 'kardex') {
+                rows.push(['Fecha', 'Rol', 'TipoMovimiento', 'Detalle']);
+                state.auditLog.forEach(ev => rows.push([ev.fecha, ev.rol, ev.tipo, ev.detalle]));
+            } else {
+                rows.push(['ID', 'Tipo', 'Raza', 'Corral', 'PesoIngreso', 'PesoActual', 'DiasCebo', 'GDP', 'CostoCompra_USD', 'ConsumoKg', 'Estado', 'Proveedor']);
+                state.listaAnimales.forEach(a => rows.push([a.id, a.tipo, a.raza, a.corral, a.pesoIngreso, a.pesoActual, a.diasEnCebo, calcAnimalGdp(a).toFixed(2), a.costoCompra, a.consumoDiarioKg, a.estado, a.proveedor || '']));
+            }
+            const csvString = rows.map(r => r.map(escapeCSVCell).join(',')).join('\r\n');
+            triggerDownload('\uFEFF' + csvString, `Agrocampo_${type}_${todayISO()}.csv`, 'text/csv;charset=utf-8;');
+        }
+
+        function exportJSON() {
+            const payload = { exportedAt: new Date().toISOString(), schemaVersion: '7.0-erp-cebo', summary: computeMetrics(), data: state };
+            triggerDownload(JSON.stringify(payload, null, 2), `Agrocampo_Respaldo_${todayISO()}.json`, 'application/json');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    const incoming = parsed.data || parsed;
+                    if (!Array.isArray(incoming.listaAnimales) || !Array.isArray(incoming.corrales)) throw new Error('Invalido');
+                    state = { ...createEmptyState(state), ...incoming };
+                    saveState();
+                    alertModal(`Respaldo restaurado: ${state.listaAnimales.length.toLocaleString('es-ES')} animales y ${state.gastos.length} gastos.`, 'success');
+                } catch {
+                    alertModal('Archivo JSON incompatible.', 'error');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetDemoDataset() {
+            state = createStarterState();
+            saveState();
+            alertModal('Datos de ejemplo restaurados.', 'info');
+        }
+
+        function triggerDownload(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function generateAnimalQR(id) {
+            const a = state.listaAnimales.find(x => x.id === id);
+            if (!a) return;
+            showModalHtml(`
+                <div class="text-center space-y-3 p-2">
+                    <h3 class="font-bold text-slate-800 text-sm">Arete QR: ${escapeHTML(a.id)} (${escapeHTML(a.raza)})</h3>
+                    <div id="qrcode" class="flex justify-center p-3 bg-white border border-slate-200 rounded-2xl w-max mx-auto"></div>
+                    <p class="text-[10px] text-slate-500">Campo ${escapeHTML(a.corral)} · ${a.pesoActual} kg · GDP: ${calcAnimalGdp(a).toFixed(2)} kg/d</p>
+                    <button data-action="close-modal" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">Cerrar</button>
+                </div>
+            `, () => {
+                const qrEl = document.getElementById('qrcode');
+                if (qrEl) { qrEl.innerHTML = ''; new QRCode(qrEl, { text: `AGROCAMPO-CEBO:${a.id}`, width: 128, height: 128 }); }
+            });
+        }
+
+        function scannedAnimalResult(id) {
+            const a = state.listaAnimales.find(x => x.id === id);
+            if (a) alertModal(`${a.id} · ${a.tipo} ${a.raza} · Campo ${a.corral} · ${a.pesoActual} kg (GDP ${calcAnimalGdp(a).toFixed(2)} kg/d)`, 'info');
+        }
+    </script>
+</body>
+</html>
+
+
