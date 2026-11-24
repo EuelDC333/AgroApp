@@ -2,8 +2,23 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>AGROCAMPO ERP & BI - Gestión de Cebo y Contabilidad Ganadera</title>
+    <!-- PWA & Compatibilidad Apple (iPhone / iPad / MacBook) -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0F172A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AGROCAMPO">
+    <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <!-- Vista Previa en WhatsApp y Redes (Open Graph) -->
+    <meta property="og:title" content="AGROCAMPO ERP & BI">
+    <meta property="og:description" content="Gestión de cebo, inventario de lotes, contabilidad ganadera y analítica BI. Funciona offline en el campo.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://eueldc333.github.io/AgroApp/">
+    <meta property="og:image" content="https://eueldc333.github.io/AgroApp/icon-512.png">
     <!-- Tailwind CSS CDN (para despliegue en archivo único; en producción compilar con Vite/CLI) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -31,7 +46,15 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #F1F5F9; color: #0F172A; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #F1F5F9; color: #0F172A; -webkit-tap-highlight-color: transparent; }
+        /* Evitar zoom automático en Safari de iPhone al tocar campos */
+        @media (max-width: 1023px) {
+            input, select, textarea { font-size: 16px !important; }
+        }
+        /* Respetar área segura inferior en iPhones sin botón físico */
+        .mobile-bottom-nav {
+            padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+        }
         .tabular-nums { font-variant-numeric: tabular-nums; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -41,10 +64,10 @@
 </head>
 <body class="min-h-[100dvh] bg-slate-100 text-slate-900">
 
-    <div class="min-h-[100dvh] flex flex-col lg:flex-row max-w-[1480px] mx-auto bg-agro-bg shadow-xl">
+    <div class="min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden flex flex-col lg:flex-row max-w-[1480px] mx-auto bg-agro-bg shadow-xl">
 
         <!-- DESKTOP SIDEBAR -->
-        <aside class="hidden lg:flex lg:flex-col lg:w-64 bg-slate-900 text-slate-100 p-5 justify-between shrink-0">
+        <aside class="hidden lg:flex lg:flex-col lg:w-64 lg:h-[100dvh] lg:overflow-y-auto no-scrollbar bg-slate-900 text-slate-100 p-5 justify-between shrink-0">
             <div class="space-y-5">
                 <div class="flex items-center gap-2.5 px-1">
                     <div class="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow">
@@ -152,7 +175,7 @@
             </header>
 
             <!-- MAIN SCROLLABLE AREA -->
-            <main class="flex-1 overflow-y-auto p-4 lg:p-6 pb-24 lg:pb-8 space-y-5" id="mainContent">
+            <main class="flex-1 overflow-y-auto p-4 lg:p-6 pb-28 lg:pb-8 space-y-5" id="mainContent">
 
                 <!-- TAB 1: RESUMEN OPERATIVO -->
                 <section id="tab-home" class="space-y-5">
@@ -723,7 +746,7 @@
             </main>
 
             <!-- MOBILE BOTTOM NAVIGATION -->
-            <nav class="lg:hidden bg-white border-t border-slate-200 px-3 py-2 flex justify-between items-center fixed bottom-0 left-0 right-0 z-30">
+            <nav class="lg:hidden mobile-bottom-nav bg-white border-t border-slate-200 px-3 pt-2 flex justify-between items-center fixed bottom-0 left-0 right-0 z-30">
                 <button onclick="switchTab('home')" id="nav-home" class="flex-1 flex flex-col items-center text-emerald-700 transition">
                     <i class="fas fa-home text-base"></i>
                     <span class="text-[10px] font-bold mt-0.5">Inicio</span>
@@ -1062,7 +1085,7 @@
             } else {
                 badge.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200';
                 dot.className = 'w-2 h-2 rounded-full bg-amber-500';
-                text.innerText = 'Offline';
+                text.innerText = 'Offline ✓';
             }
         }
 
@@ -1589,7 +1612,7 @@
 
         function renderHomeChart(weeklyTargetKg) {
             const ctx = document.getElementById('homeGainChart');
-            if (!ctx) return;
+            if (!ctx || typeof Chart === 'undefined') return;
             destroyChart('homeGain');
             charts.homeGain = new Chart(ctx, {
                 type: 'line',
@@ -1610,6 +1633,7 @@
 
         function renderAnalyticsCharts() {
             // 1. Gastos por categoría
+            if (typeof Chart === 'undefined') return;
             const costCtx = document.getElementById('biCostCategoryChart');
             if (costCtx) {
                 destroyChart('biCostCat');
@@ -2729,13 +2753,28 @@
                 </div>
             `, () => {
                 const qrEl = document.getElementById('qrcode');
-                if (qrEl) { qrEl.innerHTML = ''; new QRCode(qrEl, { text: `AGROCAMPO-CEBO:${a.id}`, width: 128, height: 128 }); }
+                if (qrEl) { qrEl.innerHTML = ''; if (typeof QRCode !== 'undefined') { new QRCode(qrEl, { text: `AGROCAMPO-CEBO:${a.id}`, width: 128, height: 128 }); } else { qrEl.innerHTML = `<span class="text-xs font-bold text-slate-600">ID: ${escapeHTML(a.id)} (Sin conexión para generar QR)</span>`; } }
             });
         }
 
         function scannedAnimalResult(id) {
             const a = state.listaAnimales.find(x => x.id === id);
             if (a) alertModal(`${a.id} · ${a.tipo} ${a.raza} · Campo ${a.corral} · ${a.pesoActual} kg (GDP ${calcAnimalGdp(a).toFixed(2)} kg/d)`, 'info');
+        }
+    </script>
+
+    <!-- Registro del Service Worker para funcionamiento 100% Offline (PWA) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js', { scope: './' })
+                    .then((reg) => {
+                        reg.update();
+                    })
+                    .catch((err) => {
+                        console.warn('Service Worker no registrado:', err);
+                    });
+            });
         }
     </script>
 </body>
